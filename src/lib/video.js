@@ -677,7 +677,262 @@ export async function compressVideo(
     }
 
   }
+  
 
+}
+
+/* =========================================
+   NORMALIZAR VIDEO PARA COMPATIBILIDAD
+========================================= */
+
+export async function normalizeVideo(
+  file,
+  onProgress,
+  onStatus
+) {
+  if (!file) {
+    throw new Error(
+      'No se recibió ningún video.'
+    );
+  }
+
+  if (file.size > MAX_VIDEO_SIZE) {
+    throw new Error(
+      'El video supera el límite máximo de 50 MB.'
+    );
+  }
+
+  compressionCancelled = false;
+
+  const engine =
+    await getFFmpeg(onStatus);
+
+  if (compressionCancelled) {
+    throw new VideoCompressionCancelledError();
+  }
+
+  const uniqueId =
+    crypto.randomUUID();
+
+  const inputExtension =
+    getExtension(file.name) || 'mp4';
+
+  const inputName =
+    `normalize-input-${uniqueId}.${inputExtension}`;
+
+  const outputName =
+    `normalize-output-${uniqueId}.mp4`;
+
+  const progressHandler =
+    ({ progress }) => {
+      if (compressionCancelled) {
+        return;
+      }
+
+      if (
+        typeof progress === 'number' &&
+        Number.isFinite(progress)
+      ) {
+        onProgress?.(
+          Math.min(
+            99,
+            Math.max(
+              0,
+              Math.round(progress * 100)
+            )
+          )
+        );
+      }
+    };
+
+  activeProgressHandler =
+    progressHandler;
+
+  engine.on(
+    'progress',
+    progressHandler
+  );
+
+  try {
+    onStatus?.(
+      'Preparando video compatible...'
+    );
+
+    await engine.writeFile(
+      inputName,
+      await fetchFile(file)
+    );
+
+    if (compressionCancelled) {
+      throw new VideoCompressionCancelledError();
+    }
+
+    onStatus?.(
+      'Adaptando video para tu navegador...'
+    );
+
+    const exitCode =
+      await engine.exec(
+        [
+          '-i',
+          inputName,
+
+          '-vf',
+          'scale=1280:-2:force_original_aspect_ratio=decrease',
+
+          '-c:v',
+          'libx264',
+
+          '-preset',
+          'ultrafast',
+
+          '-crf',
+          '28',
+
+          '-pix_fmt',
+          'yuv420p',
+
+          '-c:a',
+          'aac',
+
+          '-b:a',
+          '96k',
+
+          '-movflags',
+          '+faststart',
+
+          '-y',
+          outputName,
+        ],
+        COMPRESSION_TIMEOUT
+      );
+
+    if (compressionCancelled) {
+      throw new VideoCompressionCancelledError();
+    }
+
+    if (exitCode !== 0) {
+      throw new Error(
+        'No se pudo preparar una versión compatible del video.'
+      );
+    }
+
+    const data =
+      await engine.readFile(
+        outputName
+      );
+
+    if (compressionCancelled) {
+      throw new VideoCompressionCancelledError();
+    }
+
+    if (
+      !data ||
+      typeof data === 'string' ||
+      data.length === 0
+    ) {
+      throw new Error(
+        'El video compatible quedó vacío.'
+      );
+    }
+
+    const bytes =
+      new Uint8Array(data.length);
+
+    bytes.set(data);
+
+    const compatibleFile =
+      new File(
+        [bytes],
+        createCompatibleOutputName(
+          file.name
+        ),
+        {
+          type: 'video/mp4',
+          lastModified: Date.now(),
+        }
+      );
+
+    if (compatibleFile.size === 0) {
+      throw new Error(
+        'El video compatible quedó vacío.'
+      );
+    }
+
+    if (
+      compatibleFile.size >
+      MAX_VIDEO_SIZE
+    ) {
+      throw new Error(
+        'La versión compatible supera el límite de 50 MB.'
+      );
+    }
+
+    onProgress?.(100);
+
+    onStatus?.(
+      'Video listo para compartir.'
+    );
+
+    return compatibleFile;
+
+  } catch (error) {
+    if (
+      compressionCancelled ||
+      error instanceof
+        VideoCompressionCancelledError ||
+      error?.message
+        ?.toLowerCase()
+        ?.includes('terminate')
+    ) {
+      throw new VideoCompressionCancelledError();
+    }
+
+    throw error;
+
+  } finally {
+    if (
+      activeProgressHandler &&
+      engine
+    ) {
+      try {
+        engine.off(
+          'progress',
+          activeProgressHandler
+        );
+      } catch {
+        // Worker terminado.
+      }
+    }
+
+    activeProgressHandler = null;
+
+    try {
+      if (
+        engine &&
+        engine.loaded
+      ) {
+        await engine.deleteFile(
+          inputName
+        );
+      }
+    } catch {
+      // No bloqueamos por limpieza.
+    }
+
+    try {
+      if (
+        engine &&
+        engine.loaded
+      ) {
+        await engine.deleteFile(
+          outputName
+        );
+      }
+    } catch {
+      // No bloqueamos por limpieza.
+    }
+  }
 }
 
 
@@ -726,4 +981,22 @@ function createOutputName(
 
   return `${base}-optimized.mp4`;
 
+}
+
+function createCompatibleOutputName(
+  originalName
+) {
+  const base =
+    originalName
+      ?.replace(
+        /\.[^/.]+$/,
+        ''
+      )
+      ?.replace(
+        /[^a-zA-Z0-9_-]/g,
+        '_'
+      ) ||
+    'video';
+
+  return `${base}-compatible.mp4`;
 }

@@ -11,6 +11,7 @@ import { optimizeImage } from '../lib/image';
 
 import {
   compressVideo,
+  normalizeVideo,
   shouldCompressVideo,
   isVideoTooLarge,
   cancelVideoCompression,
@@ -28,7 +29,7 @@ const EVENT_ID =
 const LARA_PHOTO_URL =
   'https://res.cloudinary.com/dl81eetla/image/upload/v1788752908/IMG-20260525-WA0088_tm8ya1.jpg';
 
-const MAX_VIDEO_DURATION = 60;
+const MAX_VIDEO_DURATION = 180;
 
 
 /* =========================================
@@ -342,6 +343,107 @@ function Guest() {
         }
       );
 
+/* =========================================
+COMPROBAR COMPATIBILIDAD DE PREVIEW
+========================================= */
+
+const canPreviewVideo =
+  file =>
+    new Promise(resolve => {
+
+      const video =
+        document.createElement('video');
+
+      const url =
+        URL.createObjectURL(file);
+
+      let settled = false;
+
+      const cleanup = () => {
+
+        video.onloadeddata = null;
+        video.onerror = null;
+
+        clearTimeout(timeout);
+
+        video.removeAttribute('src');
+
+        try {
+          video.load();
+        } catch {
+          // No es crítico.
+        }
+
+        URL.revokeObjectURL(url);
+      };
+
+
+      const finish =
+        result => {
+
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+
+          cleanup();
+
+          resolve(result);
+        };
+
+
+      /*
+       * No necesitamos reproducir el video.
+       * loadeddata confirma que el navegador
+       * pudo decodificar al menos el primer frame.
+       */
+
+      video.preload = 'auto';
+
+      video.muted = true;
+
+      video.playsInline = true;
+
+
+      video.onloadeddata =
+        () => {
+
+          finish(true);
+
+        };
+
+
+      video.onerror =
+        () => {
+
+          finish(false);
+
+        };
+
+
+      /*
+       * Algunos navegadores móviles pueden
+       * quedarse esperando sin disparar error.
+       */
+
+      const timeout =
+        setTimeout(
+          () => {
+
+            finish(false);
+
+          },
+          8000
+        );
+
+
+      video.src = url;
+
+      video.load();
+
+    });
+
 
   /* =========================================
      LIMPIAR ARCHIVO
@@ -404,124 +506,346 @@ function Guest() {
   /* =========================================
      SELECCIONAR ARCHIVO
   ========================================= */
+const handleFileChange =
+  async event => {
 
-  const handleFileChange =
-    async event => {
-
-      const file =
-        event.target.files?.[0];
+    const file =
+      event.target.files?.[0];
 
 
-      if (!file) {
+    if (!file) {
+      return;
+    }
+
+
+    /*
+     * Limpiamos cualquier proceso anterior
+     * antes de trabajar con el nuevo archivo.
+     */
+
+    cancelVideoCompression();
+
+    replacePreviewUrl('');
+
+    setOriginalFile(file);
+
+    setOptimizedFile(null);
+
+    setPreviewError(false);
+
+    setResult('');
+
+    setResultType('');
+
+    setVideoProgress(0);
+
+    setPreparationStatus('');
+
+
+    /* =====================================
+       VIDEO
+    ===================================== */
+
+    if (
+      file.type?.startsWith('video/')
+    ) {
+
+      if (
+        isVideoTooLarge(file)
+      ) {
+
+        setResult(
+          'El video supera los 50 MB. Elegí uno más corto o más pequeño.'
+        );
+
+        setResultType('error');
+
+        clearSelectedFile();
+
         return;
       }
 
 
-      /*
-       * Limpiamos cualquier proceso anterior
-       * antes de trabajar con el nuevo archivo.
-       */
-
-      cancelVideoCompression();
-
-      replacePreviewUrl('');
-
-      setOriginalFile(
-        file
-      );
-
-      setOptimizedFile(
-        null
-      );
-
-      setPreviewError(
-        false
-      );
-
-      setResult(
-        ''
-      );
-
-      setResultType(
-        ''
-      );
-
-      setVideoProgress(
-        0
-      );
+      setPreparingVideo(true);
 
       setPreparationStatus(
-        ''
+        'Comprobando tu video...'
       );
 
 
-      /* =====================================
-         VIDEO
-      ===================================== */
+      try {
 
-      if (
-        file.type?.startsWith(
-          'video/'
-        )
-      ) {
+        let duration = null;
 
-        if (
-          isVideoTooLarge(
-            file
-          )
-        ) {
+        let durationWasReadable =
+          false;
 
-          setResult(
-            'El video supera los 50 MB. Elegí uno más corto o más pequeño.'
+
+        /* ===================================
+           DURACIÓN ORIGINAL
+        =================================== */
+
+        try {
+
+          duration =
+            await getVideoDuration(file);
+
+          durationWasReadable =
+            Number.isFinite(duration);
+
+
+          if (
+            durationWasReadable &&
+            duration > MAX_VIDEO_DURATION
+          ) {
+
+            setResult(
+              'Este video dura más de 3 minutos. Elegí uno más corto para poder compartirlo 💕'
+            );
+
+            setResultType('warning');
+
+            clearSelectedFile();
+
+            return;
+          }
+
+        } catch (durationError) {
+
+          /*
+           * Un video descargado puede ser válido
+           * pero no compatible con el navegador.
+           *
+           * No lo rechazamos todavía.
+           */
+
+          console.warn(
+            'No se pudo leer inicialmente la duración del video:',
+            durationError
           );
-
-          setResultType(
-            'error'
-          );
-
-          clearSelectedFile();
-
-          return;
 
         }
 
 
-        setPreparingVideo(
-          true
-        );
-
-        setPreparationStatus(
-          'Comprobando tu video...'
-        );
+        let finalFile =
+          file;
 
 
-        try {
+        /* ===================================
+           OPTIMIZACIÓN POR PESO
+        =================================== */
 
-          /*
-           * La duración es una validación útil,
-           * pero si un navegador móvil no puede
-           * leer la metadata local no destruimos
-           * un archivo que podría ser válido.
-           */
+        if (
+          shouldCompressVideo(file)
+        ) {
+
+          setPreparationStatus(
+            'Optimizando tu video...'
+          );
+
 
           try {
 
-            const duration =
+            finalFile =
+              await compressVideo(
+
+                file,
+
+                progress => {
+
+                  setVideoProgress(
+                    progress
+                  );
+
+                },
+
+                status => {
+
+                  setPreparationStatus(
+                    status
+                  );
+
+                }
+
+              );
+
+          } catch (
+            compressionError
+          ) {
+
+            if (
+              compressionError instanceof
+                VideoCompressionCancelledError
+            ) {
+
+              throw compressionError;
+            }
+
+
+            console.warn(
+              'La optimización del video falló. Se comprobará el original:',
+              compressionError
+            );
+
+
+            finalFile =
+              file;
+          }
+
+        }
+
+
+        /* ===================================
+           COMPATIBILIDAD DEL NAVEGADOR
+        =================================== */
+
+        setPreparationStatus(
+          'Comprobando compatibilidad...'
+        );
+
+
+        let compatible =
+          await canPreviewVideo(
+            finalFile
+          );
+
+
+        /*
+         * Si el navegador no puede decodificar
+         * el archivo, generamos una versión MP4
+         * H.264 + AAC compatible.
+         */
+
+        if (!compatible) {
+
+          setVideoProgress(0);
+
+          setPreparationStatus(
+            'Adaptando el video para tu dispositivo...'
+          );
+
+
+          try {
+
+            finalFile =
+              await normalizeVideo(
+
+                file,
+
+                progress => {
+
+                  setVideoProgress(
+                    progress
+                  );
+
+                },
+
+                status => {
+
+                  setPreparationStatus(
+                    status
+                  );
+
+                }
+
+              );
+
+          } catch (
+            normalizationError
+          ) {
+
+            if (
+              normalizationError instanceof
+                VideoCompressionCancelledError
+            ) {
+
+              throw normalizationError;
+            }
+
+
+            console.error(
+              'No se pudo normalizar el video:',
+              normalizationError
+            );
+
+
+            setOptimizedFile(null);
+
+            replacePreviewUrl('');
+
+            setPreviewError(true);
+
+            setResult(
+              'Este video usa un formato que tu dispositivo no puede preparar. Probá con otro video.'
+            );
+
+            setResultType('warning');
+
+            return;
+          }
+
+
+          /* =================================
+             VERIFICAR VERSIÓN CONVERTIDA
+          ================================= */
+
+          compatible =
+            await canPreviewVideo(
+              finalFile
+            );
+
+
+          if (!compatible) {
+
+            setOptimizedFile(null);
+
+            replacePreviewUrl('');
+
+            setPreviewError(true);
+
+            setResult(
+              'No pudimos preparar una versión compatible de este video. Probá con otro archivo.'
+            );
+
+            setResultType('warning');
+
+            return;
+          }
+
+        }
+
+
+        /* ===================================
+           DURACIÓN DESPUÉS DE CONVERTIR
+        =================================== */
+
+        /*
+         * Si el navegador no pudo leer la
+         * duración original, ahora volvemos
+         * a comprobarla usando la versión
+         * compatible.
+         */
+
+        if (!durationWasReadable) {
+
+          try {
+
+            const compatibleDuration =
               await getVideoDuration(
-                file
+                finalFile
               );
 
 
             if (
               Number.isFinite(
-                duration
+                compatibleDuration
               ) &&
-              duration >
+              compatibleDuration >
                 MAX_VIDEO_DURATION
             ) {
 
               setResult(
-                'El video puede durar hasta 60 segundos.'
+                'Este video dura más de 3 minutos. Elegí uno más corto para poder compartirlo 💕'
               );
 
               setResultType(
@@ -531,298 +855,169 @@ function Guest() {
               clearSelectedFile();
 
               return;
-
             }
 
           } catch (
-            durationError
+            finalDurationError
           ) {
 
             console.warn(
-              'No se pudo comprobar la duración del video:',
-              durationError
+              'No se pudo comprobar la duración final del video:',
+              finalDurationError
             );
 
           }
-
-
-          let finalFile =
-            file;
-
-
-          /* ===================================
-             COMPRESIÓN
-          =================================== */
-
-          if (
-            shouldCompressVideo(
-              file
-            )
-          ) {
-
-            setPreparationStatus(
-              'Optimizando tu video...'
-            );
-
-
-            try {
-
-              finalFile =
-                await compressVideo(
-
-                  file,
-
-                  progress => {
-
-                    setVideoProgress(
-                      progress
-                    );
-
-                  },
-
-                  status => {
-
-                    setPreparationStatus(
-                      status
-                    );
-
-                  }
-
-                );
-
-            } catch (
-              compressionError
-            ) {
-
-              if (
-                compressionError instanceof
-                  VideoCompressionCancelledError
-              ) {
-
-                throw compressionError;
-
-              }
-
-
-              /*
-               * FFmpeg es una optimización.
-               * Si falla, conservamos el original
-               * porque ya sabemos que está dentro
-               * del límite de 50 MB.
-               */
-
-              console.warn(
-                'La optimización del video falló. Se utilizará el original:',
-                compressionError
-              );
-
-
-              finalFile =
-                file;
-
-            }
-
-          }
-
-
-          /* ===================================
-             ARCHIVO LISTO
-          =================================== */
-
-          setOptimizedFile(
-            finalFile
-          );
-
-
-          /*
-           * La preview es independiente del upload.
-           * Un error visual NO invalida el archivo.
-           */
-
-          try {
-
-            const url =
-              URL.createObjectURL(
-                finalFile
-              );
-
-            replacePreviewUrl(
-              url
-            );
-
-          } catch (
-            previewCreationError
-          ) {
-
-            console.warn(
-              'No se pudo crear la vista previa:',
-              previewCreationError
-            );
-
-            replacePreviewUrl('');
-
-            setPreviewError(
-              true
-            );
-
-          }
-
-
-          setVideoProgress(
-            100
-          );
-
-          setPreparationStatus(
-            'Video listo para compartir.'
-          );
-
-        } catch (error) {
-
-          if (
-            error instanceof
-              VideoCompressionCancelledError
-          ) {
-
-            return;
-
-          }
-
-
-          console.error(
-            'Error preparando video:',
-            error
-          );
-
-
-          /*
-           * Protección final:
-           * utilizamos el original si sigue
-           * siendo un archivo válido.
-           */
-
-          if (
-            file.size <=
-              50 * 1024 * 1024
-          ) {
-
-            setOptimizedFile(
-              file
-            );
-
-
-            try {
-
-              const url =
-                URL.createObjectURL(
-                  file
-                );
-
-              replacePreviewUrl(
-                url
-              );
-
-            } catch {
-
-              replacePreviewUrl('');
-
-              setPreviewError(
-                true
-              );
-
-            }
-
-
-            setPreparationStatus(
-              'Video listo para compartir.'
-            );
-
-          } else {
-
-            setOptimizedFile(
-              null
-            );
-
-            setResult(
-              'No pudimos preparar este video. Probá con otro archivo.'
-            );
-
-            setResultType(
-              'error'
-            );
-
-          }
-
-        } finally {
-
-          setPreparingVideo(
-            false
-          );
 
         }
 
 
-        return;
-
-      }
-
-
-      /* =====================================
-         IMAGEN
-      ===================================== */
-
-      try {
-
-        const preparedFile =
-          await optimizeImage(
-            file
-          );
-
+        /* ===================================
+           ARCHIVO LISTO
+        =================================== */
 
         setOptimizedFile(
-          preparedFile
+          finalFile
         );
 
 
-        const url =
-          URL.createObjectURL(
-            preparedFile
+        try {
+
+          const url =
+            URL.createObjectURL(
+              finalFile
+            );
+
+
+          replacePreviewUrl(
+            url
           );
 
+          setPreviewError(
+            false
+          );
 
-        replacePreviewUrl(
-          url
-        );
+        } catch (
+          previewCreationError
+        ) {
 
+          console.warn(
+            'No se pudo crear la vista previa:',
+            previewCreationError
+          );
+
+          replacePreviewUrl('');
+
+          setPreviewError(true);
+
+        }
+
+
+        setVideoProgress(100);
 
         setPreparationStatus(
-          'Foto lista para compartir.'
+          'Video listo para compartir.'
         );
 
       } catch (error) {
 
+        if (
+          error instanceof
+            VideoCompressionCancelledError
+        ) {
+
+          return;
+        }
+
+
         console.error(
-          'Error preparando imagen:',
+          'Error preparando video:',
           error
         );
 
 
-        setOptimizedFile(
-          null
-        );
+        setOptimizedFile(null);
 
+        replacePreviewUrl('');
+
+        setPreviewError(true);
 
         setResult(
-          `No pudimos preparar la foto: ${error.message}`
+          'No pudimos preparar este video. Probá con otro archivo.'
         );
 
         setResultType(
           'error'
         );
 
+      } finally {
+
+        setPreparingVideo(
+          false
+        );
+
       }
 
-    };
 
+      return;
+    }
+
+
+    /* =====================================
+       IMAGEN
+    ===================================== */
+
+    try {
+
+      const preparedFile =
+        await optimizeImage(
+          file
+        );
+
+
+      setOptimizedFile(
+        preparedFile
+      );
+
+
+      const url =
+        URL.createObjectURL(
+          preparedFile
+        );
+
+
+      replacePreviewUrl(
+        url
+      );
+
+
+      setPreparationStatus(
+        'Foto lista para compartir.'
+      );
+
+    } catch (error) {
+
+      console.error(
+        'Error preparando imagen:',
+        error
+      );
+
+
+      setOptimizedFile(
+        null
+      );
+
+
+      setResult(
+        `No pudimos preparar la foto: ${error.message}`
+      );
+
+      setResultType(
+        'error'
+      );
+
+    }
+
+  };
 
   /* =========================================
      CANCELAR VIDEO
