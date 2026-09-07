@@ -653,6 +653,38 @@ function Guest() {
    * ==========================================
    */
 
+  const getLocalMessageSuggestions =
+    () => {
+      const name =
+        authorName.trim();
+
+      const prefix =
+        name
+          ? `${name}, `
+          : '';
+
+      return [
+        {
+          style:
+            'Dulce',
+          text:
+            `${prefix}que esta nueva etapa esté llena de momentos hermosos, sueños cumplidos y personas que te hagan feliz. ¡Felices 15, Lara! 💕`,
+        },
+        {
+          style:
+            'Corto',
+          text:
+            `${prefix}felices 15, Lara. Que disfrutes muchísimo este día y guardes recuerdos lindísimos para siempre ✨`,
+        },
+        {
+          style:
+            'Especial',
+          text:
+            `${prefix}hoy empieza una etapa inolvidable. Deseo que siempre tengas motivos para sonreír y sueños enormes por cumplir. ¡Felices 15! 🦋`,
+        },
+      ];
+    };
+
   const handleGenerateMessage =
     async () => {
       if (
@@ -661,6 +693,9 @@ function Guest() {
       ) {
         return;
       }
+
+      const fallbackSuggestions =
+        getLocalMessageSuggestions();
 
       try {
         setGeneratingMessage(
@@ -671,6 +706,10 @@ function Guest() {
           true
         );
 
+        setMessageSuggestions(
+          []
+        );
+
         setResult(
           ''
         );
@@ -679,11 +718,23 @@ function Guest() {
           ''
         );
 
-        const {
-          data,
-          error,
-        } =
-          await supabase.functions.invoke(
+        const timeoutPromise =
+          new Promise(
+            (_, reject) => {
+              setTimeout(
+                () =>
+                  reject(
+                    new Error(
+                      'AI_TIMEOUT'
+                    )
+                  ),
+                7000
+              );
+            }
+          );
+
+        const aiPromise =
+          supabase.functions.invoke(
             'generate-guest-message',
             {
               body: {
@@ -696,6 +747,15 @@ function Guest() {
             }
           );
 
+        const {
+          data,
+          error,
+        } =
+          await Promise.race([
+            aiPromise,
+            timeoutPromise,
+          ]);
+
         if (error) {
           throw error;
         }
@@ -705,6 +765,14 @@ function Guest() {
             data?.suggestions
           )
             ? data.suggestions
+                .filter(
+                  suggestion =>
+                    suggestion?.text
+                )
+                .slice(
+                  0,
+                  3
+                )
             : [];
 
         if (
@@ -712,34 +780,35 @@ function Guest() {
           0
         ) {
           throw new Error(
-            'La IA no devolvió sugerencias.'
+            'AI_EMPTY'
           );
         }
 
         setMessageSuggestions(
-          suggestions.slice(
-            0,
-            3
-          )
+          suggestions
         );
       } catch (
         error
       ) {
-        console.error(
-          'Error generando mensaje:',
+        console.warn(
+          'Usando sugerencias locales:',
           error
         );
 
+        setMessageSuggestions(
+          fallbackSuggestions
+        );
+
         setShowSuggestions(
-          false
+          true
         );
 
         setResult(
-          'No pudimos generar las sugerencias ahora. Podés escribir tu mensaje normalmente.'
+          ''
         );
 
         setResultType(
-          'warning'
+          ''
         );
       } finally {
         setGeneratingMessage(
@@ -1264,10 +1333,7 @@ function Guest() {
                   cameraInputRef
                 }
                 type="file"
-                accept="
-                  image/*,
-                  video/*
-                "
+                accept="image/*"
                 capture="environment"
                 onChange={
                   handleFileChange
@@ -1329,7 +1395,8 @@ function Guest() {
                     }
                     aria-label="Abrir cámara"
                   >
-                    📷
+                    <span className="camera-icon">📷</span>
+                    <span className="camera-text">Cámara</span>
                   </button>
 
                 </div>
@@ -4513,6 +4580,326 @@ function GuestStyles() {
           12px;
       }
 
+
+      /* =====================================
+         CAMPOS MÁS VISIBLES
+      ===================================== */
+
+      .composer {
+        background:
+          linear-gradient(
+            180deg,
+            rgba(22,17,27,.96),
+            rgba(13,12,21,.96)
+          );
+
+        border:
+          1px solid
+          rgba(242,210,164,.34);
+
+        box-shadow:
+          0 28px 80px
+          rgba(0,0,0,.46),
+          inset 0 1px 0
+          rgba(255,255,255,.05);
+      }
+
+      .field {
+        padding:
+          14px;
+
+        border:
+          1px solid
+          rgba(255,255,255,.08);
+
+        border-radius:
+          17px;
+
+        background:
+          rgba(255,247,239,.055);
+      }
+
+      .field > label,
+      .message-label-row label {
+        color:
+          #fff5ec;
+
+        font-size:
+          15px;
+
+        font-weight:
+          850;
+      }
+
+      .input-shell {
+        min-height:
+          58px;
+
+        border:
+          2px solid
+          rgba(217,174,188,.64);
+
+        border-radius:
+          14px;
+
+        background:
+          #f8e9ee;
+
+        box-shadow:
+          0 7px 22px
+          rgba(0,0,0,.18);
+      }
+
+      .input-shell input {
+        padding:
+          15px 14px;
+
+        color:
+          #241a24;
+
+        font-size:
+          16px;
+
+        font-weight:
+          650;
+      }
+
+      .input-shell input::placeholder {
+        color:
+          #7b6573;
+
+        opacity:
+          1;
+      }
+
+      .input-shell:focus-within {
+        border-color:
+          #efc981;
+
+        box-shadow:
+          0 0 0 4px
+          rgba(239,201,129,.18),
+          0 7px 22px
+          rgba(0,0,0,.20);
+      }
+
+      .textarea-shell {
+        border:
+          2px solid
+          rgba(217,174,188,.64);
+
+        border-radius:
+          14px;
+
+        background:
+          #f8e9ee;
+
+        box-shadow:
+          0 7px 22px
+          rgba(0,0,0,.18);
+      }
+
+      .textarea-shell textarea {
+        min-height:
+          125px;
+
+        padding:
+          15px 14px 30px;
+
+        background:
+          transparent;
+
+        color:
+          #241a24;
+
+        font-size:
+          16px;
+
+        font-weight:
+          600;
+      }
+
+      .textarea-shell textarea::placeholder {
+        color:
+          #7b6573;
+
+        opacity:
+          1;
+      }
+
+      .textarea-shell:focus-within {
+        border-color:
+          #efc981;
+
+        box-shadow:
+          0 0 0 4px
+          rgba(239,201,129,.18),
+          0 7px 22px
+          rgba(0,0,0,.20);
+      }
+
+      .counter,
+      .textarea-counter {
+        color:
+          #765f6d;
+
+        font-size:
+          11px;
+
+        font-weight:
+          800;
+      }
+
+      .media-picker {
+        gap:
+          10px;
+      }
+
+      .media-main-button {
+        min-height:
+          72px;
+
+        border:
+          2px solid
+          rgba(239,201,129,.52);
+
+        background:
+          linear-gradient(
+            135deg,
+            #fff4e6,
+            #f4e2e9
+          );
+
+        color:
+          #241a24;
+      }
+
+      .media-copy strong {
+        color:
+          #241a24;
+
+        font-size:
+          15px;
+      }
+
+      .media-copy small {
+        color:
+          #765f6d;
+
+        font-size:
+          12px;
+      }
+
+      .media-arrow {
+        color:
+          #6a4f5e;
+      }
+
+      .camera-button {
+        min-width:
+          88px;
+
+        min-height:
+          72px;
+
+        display:
+          flex;
+
+        flex-direction:
+          column;
+
+        align-items:
+          center;
+
+        justify-content:
+          center;
+
+        gap:
+          3px;
+
+        border:
+          2px solid
+          rgba(239,201,129,.52);
+
+        background:
+          linear-gradient(
+            135deg,
+            #fff4e6,
+            #f4e2e9
+          );
+
+        color:
+          #241a24;
+      }
+
+      .camera-icon {
+        font-size:
+          22px;
+      }
+
+      .camera-text {
+        font-size:
+          11px;
+
+        font-weight:
+          850;
+      }
+
+      .field-hint {
+        color:
+          #e3d8e1;
+
+        font-size:
+          12px;
+      }
+
+      .ai-help-button {
+        min-height:
+          40px;
+
+        border:
+          1px solid
+          rgba(239,201,129,.55);
+
+        background:
+          #f3e1e8;
+
+        color:
+          #4d3341;
+
+        font-size:
+          11px;
+
+        font-weight:
+          900;
+      }
+
+      .ai-suggestions {
+        border:
+          1px solid
+          rgba(239,201,129,.30);
+
+        background:
+          rgba(11,10,17,.92);
+      }
+
+      .suggestion-card {
+        border:
+          1px solid
+          rgba(255,255,255,.12);
+
+        background:
+          rgba(255,255,255,.055);
+      }
+
+      .suggestion-text {
+        color:
+          #fff5ee;
+
+        font-size:
+          13px;
+      }
+
       /* =====================================
          MOBILE
       ===================================== */
@@ -4566,6 +4953,22 @@ function GuestStyles() {
         .composer-title h2 {
           font-size:
             21px;
+        }
+
+
+        .media-picker {
+          grid-template-columns:
+            1fr 92px;
+        }
+
+        .camera-button {
+          width:
+            92px;
+        }
+
+        .field {
+          padding:
+            13px 11px;
         }
 
         .composer {
