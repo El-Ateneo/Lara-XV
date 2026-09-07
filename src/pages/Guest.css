@@ -3123,3 +3123,319 @@ button {
   }
 
 }
+
+/* =========================================
+   REFINAMIENTO CHAMPAGNE
+========================================= */
+
+/*
+ * Campos principales
+ */
+
+.field {
+  border-color: rgba(239, 207, 145, 0.25);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(74, 60, 43, 0.72),
+      rgba(54, 44, 35, 0.70)
+    );
+}
+
+
+/*
+ * Inputs y textarea
+ */
+
+.input-shell,
+.textarea-shell {
+  border-color: rgba(239, 207, 145, 0.52);
+
+  background:
+    rgba(82, 67, 49, 0.88);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 230, 0.06),
+    0 7px 18px rgba(0, 0, 0, 0.15);
+}
+
+
+.input-shell:focus-within,
+.textarea-shell:focus-within {
+  border-color: #efcf93;
+
+  background:
+    rgba(98, 79, 56, 0.95);
+
+  box-shadow:
+    0 0 0 3px rgba(239, 207, 145, 0.13),
+    0 8px 22px rgba(0, 0, 0, 0.18);
+}
+
+
+.input-shell input,
+.textarea-shell textarea {
+  color: #fffaf0;
+}
+
+
+.input-shell input::placeholder,
+.textarea-shell textarea::placeholder {
+  color: rgba(255, 244, 220, 0.65);
+}
+
+
+/*
+ * Contadores
+ */
+
+.counter,
+.textarea-counter {
+  color: rgba(255, 239, 205, 0.65);
+}
+
+
+/* =========================================
+   FOTO / VIDEO + CÁMARA
+========================================= */
+
+.media-picker {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 10px;
+}
+
+
+.media-option-button {
+  display: flex;
+
+  min-width: 0;
+  min-height: 104px;
+
+  padding: 14px 10px;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 5px;
+
+  border:
+    1.5px solid
+    rgba(239, 207, 145, 0.50);
+
+  border-radius: 15px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(91, 73, 51, 0.94),
+      rgba(64, 52, 40, 0.96)
+    );
+
+  color: #fffaf0;
+
+  text-align: center;
+
+  cursor: pointer;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 230, 0.07),
+    0 8px 20px rgba(0, 0, 0, 0.13);
+
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+
+.media-option-button:hover,
+.media-option-button:focus-visible {
+  border-color: #efcf93;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(112, 89, 60, 0.98),
+      rgba(76, 61, 44, 0.98)
+    );
+
+  box-shadow:
+    0 0 0 3px rgba(239, 207, 145, 0.10),
+    0 9px 22px rgba(0, 0, 0, 0.16);
+
+  outline: none;
+}
+
+
+.media-option-button:active {
+  transform: scale(0.98);
+
+  border-color: #f5dba5;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(122, 97, 66, 1),
+      rgba(83, 65, 46, 1)
+    );
+}
+
+
+.media-option-button:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+
+.media-option-icon {
+  display: grid;
+
+  place-items: center;
+
+  width: 36px;
+  height: 36px;
+
+  margin-bottom: 2px;
+
+  border:
+    1px solid
+    rgba(239, 207, 145, 0.34);
+
+  border-radius: 50%;
+
+  background:
+    rgba(239, 207, 145, 0.08);
+
+  color: #f2d69d;
+
+  font-size: 18px;
+}
+
+
+.media-option-title {
+  color: #fffaf0;
+
+  font-size: 13px;
+  font-weight: 850;
+
+  line-height: 1.2;
+}
+
+
+.media-option-subtitle {
+  color:
+    rgba(255, 239, 205, 0.67);
+
+  font-size: 10px;
+
+  line-height: 1.25;
+}
+
+
+/*
+ * Archivo ya seleccionado
+ */
+
+.selected-file {
+  border-color:
+    rgba(239, 207, 145, 0.25);
+
+  background:
+    rgba(48, 39, 30, 0.90);
+}
+
+
+.selected-file-icon {
+  border:
+    1px solid
+    rgba(239, 207, 145, 0.20);
+
+  background:
+    rgba(239, 207, 145, 0.10);
+}
+
+
+/*
+ * Vista previa
+ */
+
+.preview {
+  border-color:
+    rgba(239, 207, 145, 0.24);
+}
+
+
+.preview-head span:last-child {
+  color: #efcf93;
+}
+
+
+/*
+ * Texto informativo
+ */
+
+.field-hint {
+  color:
+    rgba(255, 239, 205, 0.67);
+}
+
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 640px) {
+
+  .media-picker {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap: 9px;
+  }
+
+
+  .media-option-button {
+    width: 100%;
+
+    min-height: 100px;
+
+    padding: 12px 7px;
+  }
+
+
+  .media-option-title {
+    font-size: 12px;
+  }
+
+
+  .media-option-subtitle {
+    font-size: 9.5px;
+  }
+
+}
+
+
+@media (max-width: 350px) {
+
+  .media-picker {
+    gap: 7px;
+  }
+
+
+  .media-option-button {
+    min-height: 94px;
+
+    padding:
+      10px
+      5px;
+  }
+
+}

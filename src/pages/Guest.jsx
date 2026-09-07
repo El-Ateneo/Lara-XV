@@ -1321,53 +1321,6 @@ function Guest() {
      FORMATEAR TAMAÑO
   ========================================= */
 
-  const formatSize =
-    bytes => {
-
-      if (!bytes) {
-
-        return '0 B';
-
-      }
-
-
-      if (
-        bytes <
-        1024
-      ) {
-
-        return `${bytes} B`;
-
-      }
-
-
-      if (
-        bytes <
-        1024 *
-        1024
-      ) {
-
-        return `${(
-          bytes /
-          1024
-        ).toFixed(
-          1
-        )} KB`;
-
-      }
-
-
-      return `${(
-        bytes /
-        1024 /
-        1024
-      ).toFixed(
-        2
-      )} MB`;
-
-    };
-
-
 
   const isVideo =
     optimizedFile?.type?.startsWith(
@@ -1685,75 +1638,44 @@ function Guest() {
 
               <div className="media-picker">
 
-
                 <button
-
                   type="button"
-
-                  className="media-main-button"
-
-                  onClick={
-                    openGallery
-                  }
-
-                  disabled={
-                    uploading
-                  }
-
+                  className="media-option-button"
+                  onClick={openGallery}
+                  disabled={uploading}
                 >
-
-                  <span className="media-big-icon">
+                  <span className="media-option-icon">
                     ✦
                   </span>
 
-
-                  <span className="media-copy">
-
-                    <strong>
-                      Elegí una foto o video
-                    </strong>
-
-                    <small>
-                      Desde tu celular
-                    </small>
-
+                  <span className="media-option-title">
+                    Foto o video
                   </span>
 
-
-                  <span className="media-arrow">
-                    →
+                  <span className="media-option-subtitle">
+                    Desde tu galería
                   </span>
-
                 </button>
 
 
-
                 <button
-
                   type="button"
-
-                  className="camera-button"
-
-                  onClick={
-                    openCamera
-                  }
-
-                  disabled={
-                    uploading
-                  }
-
+                  className="media-option-button"
+                  onClick={openCamera}
+                  disabled={uploading}
                   aria-label="Abrir cámara"
-
                 >
-
-                  <span className="camera-icon">
+                  <span className="media-option-icon">
                     📷
                   </span>
 
-                  <span className="camera-text">
+                  <span className="media-option-title">
                     Cámara
                   </span>
 
+                  <span className="media-option-subtitle">
+                    Sacá una foto
+                  </span>
                 </button>
 
               </div>
@@ -1861,16 +1783,6 @@ function Guest() {
                       }
                     </strong>
 
-                    <span>
-
-                      {
-                        formatSize(
-                          optimizedFile?.size ||
-                          originalFile?.size
-                        )
-                      }
-
-                    </span>
 
                   </div>
 
@@ -1957,17 +1869,7 @@ function Guest() {
                       }
                     </strong>
 
-                    <span>
-
-                      {
-                        formatSize(
-                          optimizedFile?.size ||
-                          originalFile?.size
-                        )
-                      }
-
-                    </span>
-
+                   
                   </div>
 
 
