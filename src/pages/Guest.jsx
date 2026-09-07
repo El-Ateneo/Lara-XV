@@ -400,6 +400,9 @@ function Guest() {
             'video/'
           )
         ) {
+          setPreparingVideo(true);
+          setPreparationStatus('Comprobando tu video...');
+          setVideoProgress(0);
 
           try {
 
@@ -450,10 +453,6 @@ function Guest() {
             )
           ) {
 
-            setPreparingVideo(
-              true
-            );
-
             setPreparationStatus(
               'Preparando tu video...'
             );
@@ -501,6 +500,8 @@ function Guest() {
             setPreparationStatus(
               'Video listo para compartir.'
             );
+            
+            setPreparingVideo(false);
 
           } else {
 
@@ -1910,16 +1911,27 @@ function Guest() {
                   <div className="preview-media">
 
                     <video
-
-                      src={
-                        previewUrl
-                      }
-
+                      key={previewUrl}
                       controls
-
                       playsInline
+                      preload="metadata"
+                      onLoadedMetadata={(event) => {
+                        event.currentTarget.currentTime = 0.01;
+                      }}
+                      onError={(event) => {
+                        console.error(
+                          'Error cargando vista previa del video:',
+                          event.currentTarget.error
+                        );
+                      }}
+                    >
+                      <source
+                        src={previewUrl}
+                        type={optimizedFile?.type || originalFile?.type}
+                      />
 
-                    />
+                      Tu navegador no puede reproducir la vista previa de este video.
+                    </video>
 
                   </div>
 
