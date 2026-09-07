@@ -40,6 +40,8 @@ function Guest() {
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
+  const previewUrlRef = useRef('');
+
   const [user, setUser] = useState(null);
 
   const [authorName, setAuthorName] =
@@ -56,6 +58,9 @@ function Guest() {
 
   const [previewUrl, setPreviewUrl] =
     useState('');
+
+  const [previewError, setPreviewError] =
+    useState(false);
 
   const [uploading, setUploading] =
     useState(false);
@@ -76,7 +81,6 @@ function Guest() {
 
   const [resultType, setResultType] =
     useState('');
-
 
 
   /* =========================================
@@ -101,6 +105,32 @@ function Guest() {
   const [aiError, setAiError] =
     useState('');
 
+
+  /* =========================================
+     PREVIEW URL
+  ========================================= */
+
+  const replacePreviewUrl = url => {
+
+    if (
+      previewUrlRef.current &&
+      previewUrlRef.current !== url
+    ) {
+
+      URL.revokeObjectURL(
+        previewUrlRef.current
+      );
+
+    }
+
+    previewUrlRef.current =
+      url || '';
+
+    setPreviewUrl(
+      url || ''
+    );
+
+  };
 
 
   /* =========================================
@@ -140,7 +170,9 @@ function Guest() {
         }
 
 
-        setUser(currentUser);
+        setUser(
+          currentUser
+        );
 
       } catch (error) {
 
@@ -174,10 +206,25 @@ function Guest() {
 
       mounted = false;
 
+      cancelVideoCompression();
+
+
+      if (
+        previewUrlRef.current
+      ) {
+
+        URL.revokeObjectURL(
+          previewUrlRef.current
+        );
+
+        previewUrlRef.current =
+          '';
+
+      }
+
     };
 
   }, []);
-
 
 
   /* =========================================
@@ -203,8 +250,59 @@ function Guest() {
             );
 
 
+          let settled = false;
+
+
+          const cleanup =
+            () => {
+
+              video.onloadedmetadata =
+                null;
+
+              video.onerror =
+                null;
+
+              video.removeAttribute(
+                'src'
+              );
+
+              try {
+                video.load();
+              } catch {
+                // No es crítico.
+              }
+
+              URL.revokeObjectURL(
+                url
+              );
+
+            };
+
+
+          const finish =
+            callback => {
+
+              if (settled) {
+                return;
+              }
+
+              settled = true;
+
+              cleanup();
+
+              callback();
+
+            };
+
+
           video.preload =
             'metadata';
+
+          video.muted =
+            true;
+
+          video.playsInline =
+            true;
 
 
           video.onloadedmetadata =
@@ -213,12 +311,11 @@ function Guest() {
               const duration =
                 video.duration;
 
-              URL.revokeObjectURL(
-                url
-              );
-
-              resolve(
-                duration
+              finish(
+                () =>
+                  resolve(
+                    duration
+                  )
               );
 
             };
@@ -227,14 +324,13 @@ function Guest() {
           video.onerror =
             () => {
 
-              URL.revokeObjectURL(
-                url
-              );
-
-              reject(
-                new Error(
-                  'No pudimos comprobar la duración del video.'
-                )
+              finish(
+                () =>
+                  reject(
+                    new Error(
+                      'No pudimos comprobar la duración del video.'
+                    )
+                  )
               );
 
             };
@@ -247,7 +343,6 @@ function Guest() {
       );
 
 
-
   /* =========================================
      LIMPIAR ARCHIVO
   ========================================= */
@@ -255,14 +350,9 @@ function Guest() {
   const clearSelectedFile =
     () => {
 
-      if (previewUrl) {
+      cancelVideoCompression();
 
-        URL.revokeObjectURL(
-          previewUrl
-        );
-
-      }
-
+      replacePreviewUrl('');
 
       setOriginalFile(
         null
@@ -272,8 +362,12 @@ function Guest() {
         null
       );
 
-      setPreviewUrl(
-        ''
+      setPreviewError(
+        false
+      );
+
+      setPreparingVideo(
+        false
       );
 
       setVideoProgress(
@@ -307,7 +401,6 @@ function Guest() {
     };
 
 
-
   /* =========================================
      SELECCIONAR ARCHIVO
   ========================================= */
@@ -324,14 +417,14 @@ function Guest() {
       }
 
 
-      if (previewUrl) {
+      /*
+       * Limpiamos cualquier proceso anterior
+       * antes de trabajar con el nuevo archivo.
+       */
 
-        URL.revokeObjectURL(
-          previewUrl
-        );
+      cancelVideoCompression();
 
-      }
-
+      replacePreviewUrl('');
 
       setOriginalFile(
         file
@@ -341,8 +434,8 @@ function Guest() {
         null
       );
 
-      setPreviewUrl(
-        ''
+      setPreviewError(
+        false
       );
 
       setResult(
@@ -362,47 +455,54 @@ function Guest() {
       );
 
 
-
-      /* -----------------------------------------
-         TAMAÑO MÁXIMO
-      ----------------------------------------- */
+      /* =====================================
+         VIDEO
+      ===================================== */
 
       if (
-        isVideoTooLarge(
-          file
+        file.type?.startsWith(
+          'video/'
         )
       ) {
 
-        setResult(
-          'El video supera los 50 MB. Elegí uno más corto o más pequeño.'
-        );
-
-        setResultType(
-          'error'
-        );
-
-        clearSelectedFile();
-
-        return;
-
-      }
-
-
-
-      try {
-
-        /* =====================================
-           VIDEO
-        ===================================== */
-
         if (
-          file.type.startsWith(
-            'video/'
+          isVideoTooLarge(
+            file
           )
         ) {
-          setPreparingVideo(true);
-          setPreparationStatus('Comprobando tu video...');
-          setVideoProgress(0);
+
+          setResult(
+            'El video supera los 50 MB. Elegí uno más corto o más pequeño.'
+          );
+
+          setResultType(
+            'error'
+          );
+
+          clearSelectedFile();
+
+          return;
+
+        }
+
+
+        setPreparingVideo(
+          true
+        );
+
+        setPreparationStatus(
+          'Comprobando tu video...'
+        );
+
+
+        try {
+
+          /*
+           * La duración es una validación útil,
+           * pero si un navegador móvil no puede
+           * leer la metadata local no destruimos
+           * un archivo que podría ser válido.
+           */
 
           try {
 
@@ -439,13 +539,20 @@ function Guest() {
           ) {
 
             console.warn(
-              'No se pudo comprobar la duración:',
+              'No se pudo comprobar la duración del video:',
               durationError
             );
 
           }
 
 
+          let finalFile =
+            file;
+
+
+          /* ===================================
+             COMPRESIÓN
+          =================================== */
 
           if (
             shouldCompressVideo(
@@ -454,88 +561,216 @@ function Guest() {
           ) {
 
             setPreparationStatus(
-              'Preparando tu video...'
+              'Optimizando tu video...'
             );
 
 
-            const prepared =
-              await compressVideo(
+            try {
 
-                file,
+              finalFile =
+                await compressVideo(
 
-                progress => {
+                  file,
 
-                  setVideoProgress(
-                    progress
-                  );
+                  progress => {
 
-                },
+                    setVideoProgress(
+                      progress
+                    );
 
-                status => {
+                  },
 
-                  setPreparationStatus(
-                    status
-                  );
+                  status => {
 
-                }
+                    setPreparationStatus(
+                      status
+                    );
 
+                  }
+
+                );
+
+            } catch (
+              compressionError
+            ) {
+
+              if (
+                compressionError instanceof
+                  VideoCompressionCancelledError
+              ) {
+
+                throw compressionError;
+
+              }
+
+
+              /*
+               * FFmpeg es una optimización.
+               * Si falla, conservamos el original
+               * porque ya sabemos que está dentro
+               * del límite de 50 MB.
+               */
+
+              console.warn(
+                'La optimización del video falló. Se utilizará el original:',
+                compressionError
               );
 
 
-            setOptimizedFile(
-              prepared
-            );
+              finalFile =
+                file;
 
+            }
+
+          }
+
+
+          /* ===================================
+             ARCHIVO LISTO
+          =================================== */
+
+          setOptimizedFile(
+            finalFile
+          );
+
+
+          /*
+           * La preview es independiente del upload.
+           * Un error visual NO invalida el archivo.
+           */
+
+          try {
 
             const url =
               URL.createObjectURL(
-                prepared
+                finalFile
               );
 
-
-            setPreviewUrl(
+            replacePreviewUrl(
               url
             );
 
-            setPreparationStatus(
-              'Video listo para compartir.'
-            );
-            
-            setPreparingVideo(false);
+          } catch (
+            previewCreationError
+          ) {
 
-          } else {
+            console.warn(
+              'No se pudo crear la vista previa:',
+              previewCreationError
+            );
+
+            replacePreviewUrl('');
+
+            setPreviewError(
+              true
+            );
+
+          }
+
+
+          setVideoProgress(
+            100
+          );
+
+          setPreparationStatus(
+            'Video listo para compartir.'
+          );
+
+        } catch (error) {
+
+          if (
+            error instanceof
+              VideoCompressionCancelledError
+          ) {
+
+            return;
+
+          }
+
+
+          console.error(
+            'Error preparando video:',
+            error
+          );
+
+
+          /*
+           * Protección final:
+           * utilizamos el original si sigue
+           * siendo un archivo válido.
+           */
+
+          if (
+            file.size <=
+              50 * 1024 * 1024
+          ) {
 
             setOptimizedFile(
               file
             );
 
 
-            const url =
-              URL.createObjectURL(
-                file
+            try {
+
+              const url =
+                URL.createObjectURL(
+                  file
+                );
+
+              replacePreviewUrl(
+                url
               );
 
+            } catch {
 
-            setPreviewUrl(
-              url
-            );
+              replacePreviewUrl('');
+
+              setPreviewError(
+                true
+              );
+
+            }
+
 
             setPreparationStatus(
               'Video listo para compartir.'
             );
 
+          } else {
+
+            setOptimizedFile(
+              null
+            );
+
+            setResult(
+              'No pudimos preparar este video. Probá con otro archivo.'
+            );
+
+            setResultType(
+              'error'
+            );
+
           }
 
+        } finally {
 
-          return;
+          setPreparingVideo(
+            false
+          );
 
         }
 
 
+        return;
 
-        /* =====================================
-           IMAGEN
-        ===================================== */
+      }
+
+
+      /* =====================================
+         IMAGEN
+      ===================================== */
+
+      try {
 
         const preparedFile =
           await optimizeImage(
@@ -554,95 +789,39 @@ function Guest() {
           );
 
 
-        setPreviewUrl(
+        replacePreviewUrl(
           url
         );
+
 
         setPreparationStatus(
           'Foto lista para compartir.'
         );
 
-
       } catch (error) {
 
         console.error(
-          'Error preparando archivo:',
+          'Error preparando imagen:',
           error
         );
 
 
-        if (
-          error instanceof
-          VideoCompressionCancelledError
-        ) {
-
-          return;
-
-        }
+        setOptimizedFile(
+          null
+        );
 
 
         setResult(
-          `No pudimos preparar el archivo: ${error.message}`
+          `No pudimos preparar la foto: ${error.message}`
         );
 
         setResultType(
           'error'
         );
 
-
-
-        /*
-         * Si la compresión de video falla,
-         * permitimos el original si es pequeño.
-         */
-
-        if (
-          file.type.startsWith(
-            'video/'
-          ) &&
-          file.size <=
-            20 *
-            1024 *
-            1024
-        ) {
-
-          setOptimizedFile(
-            file
-          );
-
-
-          const url =
-            URL.createObjectURL(
-              file
-            );
-
-
-          setPreviewUrl(
-            url
-          );
-
-          setPreparationStatus(
-            'Usaremos el video original.'
-          );
-
-        } else {
-
-          setOptimizedFile(
-            null
-          );
-
-        }
-
-      } finally {
-
-        setPreparingVideo(
-          false
-        );
-
       }
 
     };
-
 
 
   /* =========================================
@@ -654,11 +833,8 @@ function Guest() {
 
       cancelVideoCompression();
 
-      setPreparingVideo(
-        false
-      );
-
       clearSelectedFile();
+
 
       setResult(
         'La preparación del video fue cancelada. Podés elegir otro.'
@@ -669,7 +845,6 @@ function Guest() {
       );
 
     };
-
 
 
   /* =========================================
@@ -718,7 +893,6 @@ function Guest() {
     };
 
 
-
   /* =========================================
      CÁMARA
   ========================================= */
@@ -739,7 +913,6 @@ function Guest() {
     };
 
 
-
   /* =========================================
      GALERÍA
   ========================================= */
@@ -758,7 +931,6 @@ function Guest() {
       galleryInputRef.current?.click();
 
     };
-
 
 
   /* =========================================
@@ -793,44 +965,22 @@ function Guest() {
       );
 
 
-
       try {
 
         /*
-         * La IA tiene tiempo limitado.
-         * Si tarda demasiado, solamente
-         * falla el panel de IA.
+         * IMPORTANTE:
          *
-         * El formulario continúa funcionando.
+         * Guest ya NO tiene un timeout propio.
+         *
+         * La Edge Function es la responsable
+         * de controlar los tiempos de Gemini.
          */
 
-        const timeoutPromise =
-          new Promise(
-            (
-              _,
-              reject
-            ) => {
-
-              window.setTimeout(
-                () => {
-
-                  reject(
-                    new Error(
-                      'AI_TIMEOUT'
-                    )
-                  );
-
-                },
-                10000
-              );
-
-            }
-          );
-
-
-
-        const requestPromise =
-          supabase.functions.invoke(
+        const {
+          data,
+          error,
+        } =
+          await supabase.functions.invoke(
 
             'generate-guest-message',
 
@@ -857,24 +1007,11 @@ function Guest() {
           );
 
 
-
-        const {
-          data,
-          error,
-        } =
-          await Promise.race([
-            requestPromise,
-            timeoutPromise,
-          ]);
-
-
-
         if (error) {
 
           throw error;
 
         }
-
 
 
         const rawSuggestions =
@@ -883,7 +1020,6 @@ function Guest() {
           )
             ? data.suggestions
             : [];
-
 
 
         const suggestions =
@@ -895,38 +1031,31 @@ function Guest() {
                 index
               ) => {
 
-                /*
-                 * Permitimos que la función
-                 * devuelva strings simples.
-                 */
-
                 if (
                   typeof item ===
                   'string'
                 ) {
+
+                  const text =
+                    item.trim();
+
+
+                  if (!text) {
+                    return null;
+                  }
+
 
                   return {
 
                     style:
                       `Idea ${index + 1}`,
 
-                    text:
-                      item.trim(),
+                    text,
 
                   };
 
                 }
 
-
-
-                /*
-                 * También soportamos:
-                 *
-                 * {
-                 *   style: "...",
-                 *   text: "..."
-                 * }
-                 */
 
                 if (
                   item &&
@@ -934,14 +1063,22 @@ function Guest() {
                     'string'
                 ) {
 
+                  const text =
+                    item.text.trim();
+
+
+                  if (!text) {
+                    return null;
+                  }
+
+
                   return {
 
                     style:
                       item.style ||
                       `Idea ${index + 1}`,
 
-                    text:
-                      item.text.trim(),
+                    text,
 
                   };
 
@@ -953,9 +1090,7 @@ function Guest() {
               }
             )
 
-            .filter(
-              Boolean
-            )
+            .filter(Boolean)
 
             .filter(
               item =>
@@ -963,11 +1098,24 @@ function Guest() {
                 0
             )
 
+            .map(
+              item => ({
+
+                ...item,
+
+                text:
+                  item.text.slice(
+                    0,
+                    150
+                  ),
+
+              })
+            )
+
             .slice(
               0,
               3
             );
-
 
 
         if (
@@ -982,11 +1130,9 @@ function Guest() {
         }
 
 
-
         setMessageSuggestions(
           suggestions
         );
-
 
       } catch (error) {
 
@@ -996,25 +1142,8 @@ function Guest() {
         );
 
 
-        let errorMessage =
-          'No pudimos generar sugerencias ahora. Podés volver a intentar o escribir normalmente.';
-
-
-
-        if (
-          error?.message ===
-          'AI_TIMEOUT'
-        ) {
-
-          errorMessage =
-            'La ayuda está tardando más de lo esperado. Podés seguir escribiendo o volver a intentar.';
-
-        }
-
-
-
         setAiError(
-          errorMessage
+          'No pudimos generar sugerencias ahora. Podés volver a intentar o escribir normalmente.'
         );
 
         setMessageSuggestions(
@@ -1025,7 +1154,6 @@ function Guest() {
           true
         );
 
-
       } finally {
 
         setGeneratingMessage(
@@ -1035,7 +1163,6 @@ function Guest() {
       }
 
     };
-
 
 
   /* =========================================
@@ -1076,7 +1203,6 @@ function Guest() {
     };
 
 
-
   /* =========================================
      ENVIAR
   ========================================= */
@@ -1089,7 +1215,6 @@ function Guest() {
 
       const cleanMessage =
         message.trim();
-
 
 
       if (!cleanName) {
@@ -1105,7 +1230,6 @@ function Guest() {
         return;
 
       }
-
 
 
       if (
@@ -1126,7 +1250,6 @@ function Guest() {
       }
 
 
-
       if (!user) {
 
         setResult(
@@ -1142,7 +1265,6 @@ function Guest() {
       }
 
 
-
       try {
 
         setUploading(
@@ -1156,7 +1278,6 @@ function Guest() {
         setResultType(
           'info'
         );
-
 
 
         /* =====================================
@@ -1243,7 +1364,6 @@ function Guest() {
               });
 
 
-
           if (error) {
 
             throw error;
@@ -1251,7 +1371,6 @@ function Guest() {
           }
 
         }
-
 
 
         /* =====================================
@@ -1288,7 +1407,6 @@ function Guest() {
 
         clearSelectedFile();
 
-
       } catch (error) {
 
         console.error(
@@ -1305,7 +1423,6 @@ function Guest() {
           'error'
         );
 
-
       } finally {
 
         setUploading(
@@ -1317,17 +1434,14 @@ function Guest() {
     };
 
 
-
   /* =========================================
-     FORMATEAR TAMAÑO
+     TIPO DE ARCHIVO
   ========================================= */
-
 
   const isVideo =
     optimizedFile?.type?.startsWith(
       'video/'
     );
-
 
   const isImage =
     optimizedFile?.type?.startsWith(
@@ -1336,12 +1450,7 @@ function Guest() {
 
 
   /*
-   * IMPORTANTE:
-   *
-   * generatingMessage NO forma parte
-   * de canSubmit.
-   *
-   * La IA nunca bloquea el envío.
+   * La IA NO participa de canSubmit.
    */
 
   const canSubmit =
@@ -1358,7 +1467,6 @@ function Guest() {
     !uploading &&
 
     !preparingVideo;
-
 
 
   /* =========================================
@@ -1398,7 +1506,6 @@ function Guest() {
     );
 
   }
-
 
 
   /* =========================================
@@ -1451,17 +1558,12 @@ function Guest() {
 
 
           <p>
-
             Dejá tu huella en este día tan especial 💕
-
             <br />
-
             💕💕💕
-
           </p>
 
         </header>
-
 
 
         {/* =====================================
@@ -1495,7 +1597,6 @@ function Guest() {
             </div>
 
           </div>
-
 
 
           {/* ===================================
@@ -1558,7 +1659,6 @@ function Guest() {
           </div>
 
 
-
           {/* ===================================
               FOTO / VIDEO
           =================================== */}
@@ -1575,7 +1675,6 @@ function Guest() {
               Compartí tu momento
 
             </label>
-
 
 
             {/* GALERÍA */}
@@ -1602,7 +1701,6 @@ function Guest() {
               className="hidden-input"
 
             />
-
 
 
             {/* CÁMARA */}
@@ -1633,20 +1731,29 @@ function Guest() {
             />
 
 
-
             {!originalFile &&
               !preparingVideo && (
 
               <div className="media-picker">
 
                 <button
+
                   type="button"
+
                   className="media-option-button"
-                  onClick={openGallery}
-                  disabled={uploading}
+
+                  onClick={
+                    openGallery
+                  }
+
+                  disabled={
+                    uploading
+                  }
+
                 >
+
                   <span className="media-option-icon">
-                     🖼️
+                    🖼️
                   </span>
 
                   <span className="media-option-title">
@@ -1656,16 +1763,28 @@ function Guest() {
                   <span className="media-option-subtitle">
                     Desde tu galería
                   </span>
+
                 </button>
 
 
                 <button
+
                   type="button"
+
                   className="media-option-button"
-                  onClick={openCamera}
-                  disabled={uploading}
+
+                  onClick={
+                    openCamera
+                  }
+
+                  disabled={
+                    uploading
+                  }
+
                   aria-label="Abrir cámara"
+
                 >
+
                   <span className="media-option-icon">
                     📷
                   </span>
@@ -1677,12 +1796,12 @@ function Guest() {
                   <span className="media-option-subtitle">
                     Sacá una foto
                   </span>
+
                 </button>
 
               </div>
 
             )}
-
 
 
             {/* =================================
@@ -1757,7 +1876,6 @@ function Guest() {
             )}
 
 
-
             {/* =================================
                 FOTO
             ================================= */}
@@ -1783,7 +1901,6 @@ function Guest() {
                         originalFile?.name
                       }
                     </strong>
-
 
                   </div>
 
@@ -1843,13 +1960,11 @@ function Guest() {
             )}
 
 
-
             {/* =================================
                 VIDEO
             ================================= */}
 
             {isVideo &&
-              previewUrl &&
               !preparingVideo && (
 
               <>
@@ -1870,7 +1985,6 @@ function Guest() {
                       }
                     </strong>
 
-                   
                   </div>
 
 
@@ -1908,39 +2022,70 @@ function Guest() {
                   </div>
 
 
-                  <div className="preview-media">
+                  {previewUrl &&
+                    !previewError ? (
 
-                    <video
-                      key={previewUrl}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      onLoadedMetadata={(event) => {
-                        event.currentTarget.currentTime = 0.01;
-                      }}
-                      onError={(event) => {
-                        console.error(
-                          'Error cargando vista previa del video:',
-                          event.currentTarget.error
-                        );
-                      }}
-                    >
-                      <source
-                        src={previewUrl}
-                        type={optimizedFile?.type || originalFile?.type}
-                      />
+                    <div className="preview-media">
 
-                      Tu navegador no puede reproducir la vista previa de este video.
-                    </video>
+                      <video
 
-                  </div>
+                        key={
+                          previewUrl
+                        }
+
+                        src={
+                          previewUrl
+                        }
+
+                        controls
+
+                        playsInline
+
+                        preload="metadata"
+
+                        onLoadedMetadata={() => {
+
+                          setPreviewError(
+                            false
+                          );
+
+                        }}
+
+                        onError={event => {
+
+                          console.warn(
+                            'Este navegador no pudo mostrar la vista previa local:',
+                            event.currentTarget.error
+                          );
+
+                          setPreviewError(
+                            true
+                          );
+
+                        }}
+
+                      >
+                        Tu navegador no puede reproducir la vista previa de este video.
+                      </video>
+
+                    </div>
+
+                  ) : (
+
+                    <div className="field-hint">
+
+                      🎥 Video seleccionado y listo para enviar.
+                      La vista previa no está disponible en este navegador.
+
+                    </div>
+
+                  )}
 
                 </div>
 
               </>
 
             )}
-
 
 
             <div className="field-hint">
@@ -1950,7 +2095,6 @@ function Guest() {
             </div>
 
           </div>
-
 
 
           {/* ===================================
@@ -1976,7 +2120,6 @@ function Guest() {
                 </span>
 
               </label>
-
 
 
               <button
@@ -2010,7 +2153,6 @@ function Guest() {
               </button>
 
             </div>
-
 
 
             <div className="textarea-shell">
@@ -2056,7 +2198,6 @@ function Guest() {
             </div>
 
 
-
             {/* =================================
                 IA
             ================================= */}
@@ -2082,7 +2223,6 @@ function Guest() {
                   </div>
 
 
-
                   <button
 
                     type="button"
@@ -2104,13 +2244,10 @@ function Guest() {
                     }}
 
                   >
-
                     ×
-
                   </button>
 
                 </div>
-
 
 
                 {generatingMessage ? (
@@ -2127,9 +2264,7 @@ function Guest() {
 
                   </div>
 
-
                 ) : aiError ? (
-
 
                   <div
                     className="ai-error"
@@ -2154,20 +2289,17 @@ function Guest() {
                       }
 
                       disabled={
-                        uploading
+                        uploading ||
+                        generatingMessage
                       }
 
                     >
-
                       Reintentar
-
                     </button>
 
                   </div>
 
-
                 ) : (
-
 
                   <div className="suggestion-list">
 
@@ -2236,7 +2368,6 @@ function Guest() {
           </div>
 
 
-
           {/* ===================================
               ENVIAR
           =================================== */}
@@ -2288,7 +2419,6 @@ function Guest() {
             </span>
 
           </button>
-
 
 
           {/* ===================================
@@ -2349,7 +2479,6 @@ function Guest() {
         </section>
 
 
-
         {/* =====================================
             AVISO
         ===================================== */}
@@ -2368,7 +2497,6 @@ function Guest() {
           </span>
 
         </div>
-
 
 
         {/* =====================================
@@ -2410,7 +2538,6 @@ function Guest() {
 }
 
 
-
 /* =========================================
    FONDO
 ========================================= */
@@ -2418,6 +2545,7 @@ function Guest() {
 function Background() {
 
   const butterflies = [
+
     ['2%', '5%', '.55', '.52', '0s', '13s'],
     ['14%', '10%', '.32', '.30', '-4s', '16s'],
     ['88%', '6%', '.68', '.57', '-8s', '17s'],
@@ -2438,6 +2566,7 @@ function Background() {
     ['17%', '90%', '.34', '.26', '-3s', '15s'],
     ['59%', '90%', '.41', '.27', '-10s', '17s'],
     ['91%', '92%', '.45', '.31', '-18s', '16s'],
+
   ];
 
 
@@ -2487,7 +2616,6 @@ function Background() {
       <div className="guest-glow guest-glow-one" />
 
       <div className="guest-glow guest-glow-two" />
-
 
 
       <div
@@ -2541,7 +2669,6 @@ function Background() {
             )
           )
         }
-
 
 
         {

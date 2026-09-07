@@ -1,4 +1,3 @@
-
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 
 import {
@@ -6,303 +5,427 @@ import {
   toBlobURL,
 } from '@ffmpeg/util';
 
+
+/* =========================================
+   CONFIGURACIÓN
+========================================= */
+
 const MAX_VIDEO_SIZE =
   50 * 1024 * 1024; // 50 MB
 
 const COMPRESS_FROM =
-  20 * 1024 * 1024; // 15 MB
+  20 * 1024 * 1024; // 20 MB
 
 const COMPRESSION_TIMEOUT =
   120000; // 2 minutos
 
-let ffmpeg = null;
-let ffmpegLoading = null;
-let activeProgressHandler = null;
-
-let compressionCancelled = false;
 
 export const VIDEO_LIMITS = {
   maxSize: MAX_VIDEO_SIZE,
   compressFrom: COMPRESS_FROM,
 };
 
-export class VideoCompressionCancelledError extends Error {
+
+/* =========================================
+   ESTADO INTERNO DE FFMPEG
+========================================= */
+
+let ffmpeg = null;
+
+let ffmpegLoading = null;
+
+let activeProgressHandler = null;
+
+let compressionCancelled = false;
+
+
+/* =========================================
+   ERROR DE CANCELACIÓN
+========================================= */
+
+export class VideoCompressionCancelledError
+  extends Error {
+
   constructor() {
+
     super(
       'La compresión del video fue cancelada.'
     );
 
     this.name =
       'VideoCompressionCancelledError';
+
   }
+
 }
+
+
+/* =========================================
+   CARGAR FFMPEG
+========================================= */
 
 async function getFFmpeg(
   onStatus
 ) {
-  if (ffmpeg) {
+
+  if (
+    ffmpeg &&
+    ffmpeg.loaded
+  ) {
+
     return ffmpeg;
+
   }
+
 
   if (ffmpegLoading) {
+
     return ffmpegLoading;
+
   }
 
-  ffmpegLoading = (async () => {
-    const instance =
-      new FFmpeg();
 
-    ffmpeg = instance;
+  ffmpegLoading =
+    (async () => {
 
-    instance.on(
-      'log',
-      ({ message }) => {
-        console.log(
-          '[FFmpeg]',
-          message
+      const instance =
+        new FFmpeg();
+
+
+      instance.on(
+        'log',
+        ({ message }) => {
+
+          console.log(
+            '[FFmpeg]',
+            message
+          );
+
+        }
+      );
+
+
+      try {
+
+        compressionCancelled =
+          false;
+
+
+        const baseURL =
+          'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+
+
+        onStatus?.(
+          'Preparando compresor de video...'
         );
+
+
+        await instance.load({
+
+          coreURL:
+            await toBlobURL(
+              `${baseURL}/ffmpeg-core.js`,
+              'text/javascript'
+            ),
+
+          wasmURL:
+            await toBlobURL(
+              `${baseURL}/ffmpeg-core.wasm`,
+              'application/wasm'
+            ),
+
+        });
+
+
+        if (compressionCancelled) {
+
+          try {
+            instance.terminate();
+          } catch {
+            // Ya estaba terminado.
+          }
+
+          throw new VideoCompressionCancelledError();
+
+        }
+
+
+        ffmpeg =
+          instance;
+
+
+        onStatus?.(
+          'Compresor listo.'
+        );
+
+
+        return instance;
+
+      } catch (error) {
+
+        ffmpeg =
+          null;
+
+        throw error;
+
+      } finally {
+
+        ffmpegLoading =
+          null;
+
       }
-    );
 
-    try {
-      /*
-       * Cancelar cualquier proceso
-       * anterior.
-       */
-      compressionCancelled =
-        false;
+    })();
 
-      const baseURL =
-        'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
-
-      onStatus?.(
-        'Preparando compresor de video...'
-      );
-
-      await instance.load({
-        coreURL:
-          await toBlobURL(
-            `${baseURL}/ffmpeg-core.js`,
-            'text/javascript'
-          ),
-
-        wasmURL:
-          await toBlobURL(
-            `${baseURL}/ffmpeg-core.wasm`,
-            'application/wasm'
-          ),
-      });
-
-      onStatus?.(
-        'Compresor listo.'
-      );
-
-      return instance;
-    } catch (error) {
-      ffmpegLoading =
-        null;
-
-      ffmpeg = null;
-
-      throw error;
-    }
-  })();
 
   return ffmpegLoading;
+
 }
+
+
+/* =========================================
+   VALIDACIONES
+========================================= */
 
 export function shouldCompressVideo(
   file
 ) {
-  return (
-    file?.type?.startsWith(
+
+  return Boolean(
+    file &&
+    file.type?.startsWith(
       'video/'
     ) &&
     file.size >
       COMPRESS_FROM
   );
+
 }
+
 
 export function isVideoTooLarge(
   file
 ) {
-  return (
-    file?.type?.startsWith(
+
+  return Boolean(
+    file &&
+    file.type?.startsWith(
       'video/'
     ) &&
     file.size >
       MAX_VIDEO_SIZE
   );
+
 }
 
+
+/* =========================================
+   CANCELAR COMPRESIÓN
+========================================= */
+
 export function cancelVideoCompression() {
+
   compressionCancelled =
     true;
 
-  /*
-   * FFmpeg.terminate()
-   * cancela las operaciones
-   * actuales y destruye el worker.
-   */
+
   if (ffmpeg) {
+
     try {
+
       ffmpeg.terminate();
+
     } catch {
-      // Ya estaba terminado.
+
+      // Puede estar terminado.
+
     }
+
   }
 
-  /*
-   * Después de terminate()
-   * hay que volver a cargar FFmpeg
-   * antes de utilizarlo nuevamente.
-   */
-  ffmpeg = null;
-  ffmpegLoading = null;
-  activeProgressHandler = null;
+
+  ffmpeg =
+    null;
+
+  ffmpegLoading =
+    null;
+
+  activeProgressHandler =
+    null;
+
 }
+
+
+/* =========================================
+   COMPRIMIR VIDEO
+========================================= */
 
 export async function compressVideo(
   file,
   onProgress,
   onStatus
 ) {
+
   if (
     !file?.type?.startsWith(
       'video/'
     )
   ) {
+
     throw new Error(
       'El archivo seleccionado no es un video.'
     );
+
   }
+
 
   if (
     file.size >
     MAX_VIDEO_SIZE
   ) {
+
     throw new Error(
       'El video supera el límite máximo de 50 MB.'
     );
+
   }
 
+
   /*
-   * Videos de 15 MB o menos:
-   * no se comprimen.
+   * Los videos pequeños se utilizan
+   * directamente.
+   *
+   * No cargamos FFmpeg innecesariamente.
    */
+
   if (
     file.size <=
     COMPRESS_FROM
   ) {
+
+    onProgress?.(100);
+
+    onStatus?.(
+      'Video listo para compartir.'
+    );
+
     return file;
+
   }
+
 
   compressionCancelled =
     false;
+
 
   const engine =
     await getFFmpeg(
       onStatus
     );
 
-  if (
-    compressionCancelled
-  ) {
+
+  if (compressionCancelled) {
+
     throw new VideoCompressionCancelledError();
+
   }
+
+
+  const uniqueId =
+    crypto.randomUUID();
+
 
   const inputExtension =
     getExtension(
       file.name
     ) || 'mp4';
 
+
   const inputName =
-    `input.${inputExtension}`;
+    `input-${uniqueId}.${inputExtension}`;
+
 
   const outputName =
-    'lara-xv-optimized.mp4';
+    `output-${uniqueId}.mp4`;
+
 
   const progressHandler =
     ({ progress }) => {
-      if (
-        compressionCancelled
-      ) {
+
+      if (compressionCancelled) {
         return;
       }
 
+
       if (
         typeof progress ===
-        'number'
+        'number' &&
+        Number.isFinite(progress)
       ) {
+
+        const percentage =
+          Math.round(
+            progress * 100
+          );
+
+
         onProgress?.(
           Math.min(
-            100,
+            99,
             Math.max(
               0,
-              Math.round(
-                progress * 100
-              )
+              percentage
             )
           )
         );
+
       }
+
     };
+
 
   activeProgressHandler =
     progressHandler;
+
 
   engine.on(
     'progress',
     progressHandler
   );
 
+
   try {
-    /*
-     * ======================================
-     * ESCRIBIR ARCHIVO
-     * ======================================
-     */
+
+    /* =====================================
+       COPIAR ARCHIVO A FFMPEG
+    ===================================== */
 
     onStatus?.(
       'Preparando video...'
     );
+
 
     await engine.writeFile(
       inputName,
       await fetchFile(file)
     );
 
-    if (
-      compressionCancelled
-    ) {
+
+    if (compressionCancelled) {
+
       throw new VideoCompressionCancelledError();
+
     }
 
-    /*
-     * ======================================
-     * COMPRIMIR
-     * ======================================
-     *
-     * 1280x720 máximo aproximado.
-     *
-     * CRF 30:
-     * prioriza una reducción importante
-     * manteniendo una calidad razonable
-     * para TV/celular.
-     *
-     * ultrafast:
-     * prioriza velocidad.
-     *
-     * AAC 96k:
-     * audio suficiente para recuerdos.
-     *
-     * faststart:
-     * favorece reproducción progresiva.
-     */
+
+    /* =====================================
+       CONVERSIÓN
+    ===================================== */
 
     onStatus?.(
-      'Comprimiendo video...'
+      'Optimizando video...'
     );
+
 
     const exitCode =
       await engine.exec(
@@ -340,44 +463,66 @@ export async function compressVideo(
         COMPRESSION_TIMEOUT
       );
 
-    if (
-      compressionCancelled
-    ) {
+
+    if (compressionCancelled) {
+
       throw new VideoCompressionCancelledError();
+
     }
 
-    if (
-      exitCode !== 0
-    ) {
+
+    if (exitCode !== 0) {
+
       throw new Error(
-        'La compresión del video no pudo completarse.'
+        'La optimización del video no pudo completarse.'
       );
+
     }
 
-    /*
-     * ======================================
-     * LEER RESULTADO
-     * ======================================
-     */
+
+    /* =====================================
+       LEER RESULTADO
+    ===================================== */
 
     onStatus?.(
       'Preparando video final...'
     );
+
 
     const data =
       await engine.readFile(
         outputName
       );
 
-    if (
-      compressionCancelled
-    ) {
+
+    if (compressionCancelled) {
+
       throw new VideoCompressionCancelledError();
+
     }
+
+
+    /*
+     * Creamos una copia real del resultado.
+     *
+     * Evita depender de memoria interna de
+     * FFmpeg después de borrar el archivo.
+     */
+
+    const bytes =
+      new Uint8Array(
+        data.length
+      );
+
+
+    bytes.set(
+      data
+    );
+
 
     const optimizedFile =
       new File(
-        [data.buffer],
+        [bytes],
         createOutputName(
           file.name
         ),
@@ -390,20 +535,44 @@ export async function compressVideo(
         }
       );
 
+
     /*
-     * Si el resultado es igual o mayor,
-     * usamos el original.
+     * Si FFmpeg generó un archivo vacío
+     * o inválido, nunca lo utilizamos.
      */
+
+    if (
+      optimizedFile.size ===
+      0
+    ) {
+
+      throw new Error(
+        'El video optimizado quedó vacío.'
+      );
+
+    }
+
+
+    /*
+     * Si la conversión no redujo el peso,
+     * conservamos el original.
+     */
+
     if (
       optimizedFile.size >=
       file.size
     ) {
+
+      onProgress?.(100);
+
       onStatus?.(
-        'El video ya estaba suficientemente optimizado.'
+        'El video original ya estaba optimizado.'
       );
 
       return file;
+
     }
+
 
     onProgress?.(100);
 
@@ -411,88 +580,137 @@ export async function compressVideo(
       'Video optimizado correctamente.'
     );
 
+
     return optimizedFile;
+
   } catch (error) {
+
     if (
       compressionCancelled ||
-      error?.message?.includes(
-        'terminate'
-      )
+      error instanceof
+        VideoCompressionCancelledError ||
+      error?.message?.toLowerCase()
+        ?.includes(
+          'terminate'
+        )
     ) {
+
       throw new VideoCompressionCancelledError();
+
     }
 
+
     throw error;
+
   } finally {
-    /*
-     * Quitar listener para evitar que
-     * se acumulen listeners después
-     * de varias compresiones.
-     */
+
+    /* =====================================
+       QUITAR LISTENER
+    ===================================== */
+
     if (
       activeProgressHandler &&
       engine
     ) {
+
       try {
+
         engine.off(
           'progress',
           activeProgressHandler
         );
+
       } catch {
-        // El worker puede haber sido terminado.
+
+        // Worker terminado.
+
       }
+
     }
+
 
     activeProgressHandler =
       null;
 
-    /*
-     * Limpiar archivos temporales.
-     */
+
+    /* =====================================
+       LIMPIAR ARCHIVOS TEMPORALES
+    ===================================== */
+
     try {
+
       if (
         engine &&
         engine.loaded
       ) {
+
         await engine.deleteFile(
           inputName
         );
+
       }
+
     } catch {
-      // Puede haber sido terminado.
+
+      // No bloqueamos por limpieza.
+
     }
 
+
     try {
+
       if (
         engine &&
         engine.loaded
       ) {
+
         await engine.deleteFile(
           outputName
         );
+
       }
+
     } catch {
-      // Puede haber sido terminado.
+
+      // No bloqueamos por limpieza.
+
     }
+
   }
+
 }
+
+
+/* =========================================
+   EXTENSIÓN
+========================================= */
 
 function getExtension(
   name
 ) {
+
   const parts =
     name
       ?.split('.')
       .filter(Boolean);
 
+
   return parts?.length > 1
-    ? parts.at(-1).toLowerCase()
+    ? parts.at(-1)
+        .toLowerCase()
     : '';
+
 }
+
+
+/* =========================================
+   NOMBRE DE SALIDA
+========================================= */
 
 function createOutputName(
   originalName
 ) {
+
   const base =
     originalName
       ?.replace(
@@ -505,5 +723,7 @@ function createOutputName(
       ) ||
     'video';
 
+
   return `${base}-optimized.mp4`;
+
 }
