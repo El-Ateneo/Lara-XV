@@ -2673,54 +2673,33 @@ button {
 
   0%,
   100% {
-
     transform:
-      translate3d(
-        0,
-        0,
-        0
-      )
-      scale(
-        var(--scale)
-      )
-      rotate(-7deg);
-
+      translate3d(0, 0, 0)
+      scale(var(--scale))
+      rotate(-8deg);
   }
 
-
-  35% {
-
+  25% {
     transform:
-      translate3d(
-        14px,
-        -18px,
-        0
-      )
-      scale(
-        var(--scale)
-      )
-      rotate(7deg);
-
+      translate3d(12px, -16px, 0)
+      scale(var(--scale))
+      rotate(6deg);
   }
 
-
-  70% {
-
+  50% {
     transform:
-      translate3d(
-        -9px,
-        -8px,
-        0
-      )
-      scale(
-        var(--scale)
-      )
-      rotate(-3deg);
-
+      translate3d(20px, -27px, 0)
+      scale(var(--scale))
+      rotate(10deg);
   }
 
+  75% {
+    transform:
+      translate3d(-10px, -15px, 0)
+      scale(var(--scale))
+      rotate(-5deg);
+  }
 }
-
 
 .background-sparkle {
   position: absolute;
