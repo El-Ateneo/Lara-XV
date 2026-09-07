@@ -31,26 +31,7 @@ const LARA_PHOTO_URL =
 
 const MAX_VIDEO_DURATION = 60;
 
-const STICKERS = [
-  '👑',
-  '🎩',
-  '🧢',
-  '🕶️',
-  '🤓',
-  '😎',
-  '🥳',
-  '🤪',
-  '🐰',
-  '🐱',
-  '🦋',
-  '💕',
-  '💫',
-  '✨',
-  '🌸',
-  '🎀',
-  '💖',
-  '🌟',
-];
+
 
 function Guest() {
   const galleryInputRef =
@@ -115,20 +96,6 @@ function Guest() {
     showSuggestions,
     setShowSuggestions,
   ] = useState(false);
-
-  /*
-   * ==========================================
-   * STICKERS
-   * ==========================================
-   */
-
-  const [stickers, setStickers] =
-    useState([]);
-
-  const [
-    selectedStickerId,
-    setSelectedStickerId,
-  ] = useState(null);
 
   /*
    * ==========================================
@@ -282,13 +249,6 @@ function Guest() {
         ''
       );
 
-      setStickers(
-        []
-      );
-
-      setSelectedStickerId(
-        null
-      );
 
       if (
         galleryInputRef.current
@@ -356,13 +316,6 @@ function Guest() {
         ''
       );
 
-      setStickers(
-        []
-      );
-
-      setSelectedStickerId(
-        null
-      );
 
       /*
        * VIDEO > 50 MB
@@ -826,303 +779,6 @@ function Guest() {
 
   /*
    * ==========================================
-   * STICKER
-   * ==========================================
-   */
-
-  const addSticker =
-    emoji => {
-      const sticker = {
-        id:
-          `${Date.now()}-${Math.random()
-            .toString(36)
-            .slice(2)}`,
-
-        emoji,
-
-        x:
-          50,
-
-        y:
-          50,
-
-        scale:
-          1,
-
-        rotation:
-          Math.round(
-            Math.random() * 14 -
-              7
-          ),
-      };
-
-      setStickers(
-        current => [
-          ...current,
-          sticker,
-        ]
-      );
-
-      setSelectedStickerId(
-        sticker.id
-      );
-    };
-
-  /*
-   * ==========================================
-   * ELIMINAR STICKER
-   * ==========================================
-   */
-
-  const removeSelectedSticker =
-    () => {
-      if (
-        !selectedStickerId
-      ) {
-        return;
-      }
-
-      setStickers(
-        current =>
-          current.filter(
-            sticker =>
-              sticker.id !==
-              selectedStickerId
-          )
-      );
-
-      setSelectedStickerId(
-        null
-      );
-    };
-
-  /*
-   * ==========================================
-   * CAMBIAR TAMAÑO
-   * ==========================================
-   */
-
-  const changeStickerScale =
-    delta => {
-      if (
-        !selectedStickerId
-      ) {
-        return;
-      }
-
-      setStickers(
-        current =>
-          current.map(
-            sticker => {
-              if (
-                sticker.id !==
-                selectedStickerId
-              ) {
-                return sticker;
-              }
-
-              return {
-                ...sticker,
-                scale:
-                  Math.max(
-                    0.55,
-                    Math.min(
-                      1.7,
-                      sticker.scale +
-                        delta
-                    )
-                  ),
-              };
-            }
-          )
-      );
-    };
-
-  /*
-   * ==========================================
-   * APLANAR FOTO CON STICKERS
-   * ==========================================
-   */
-
-  const flattenEditedImage =
-    async () => {
-      if (
-        !optimizedFile ||
-        !optimizedFile.type.startsWith(
-          'image/'
-        ) ||
-        stickers.length ===
-          0
-      ) {
-        return optimizedFile;
-      }
-
-      const image =
-        new Image();
-
-      const sourceUrl =
-        URL.createObjectURL(
-          optimizedFile
-        );
-
-      try {
-        await new Promise(
-          (
-            resolve,
-            reject
-          ) => {
-            image.onload =
-              resolve;
-
-            image.onerror =
-              () =>
-                reject(
-                  new Error(
-                    'No pudimos preparar la foto editada.'
-                  )
-                );
-
-            image.src =
-              sourceUrl;
-          }
-        );
-
-        const canvas =
-          document.createElement(
-            'canvas'
-          );
-
-        canvas.width =
-          image.naturalWidth;
-
-        canvas.height =
-          image.naturalHeight;
-
-        const context =
-          canvas.getContext(
-            '2d'
-          );
-
-        if (!context) {
-          throw new Error(
-            'No se pudo crear el editor de imagen.'
-          );
-        }
-
-        context.drawImage(
-          image,
-          0,
-          0
-        );
-
-        const baseDimension =
-          Math.min(
-            canvas.width,
-            canvas.height
-          );
-
-        for (
-          const sticker of stickers
-        ) {
-          const x =
-            (sticker.x /
-              100) *
-            canvas.width;
-
-          const y =
-            (sticker.y /
-              100) *
-            canvas.height;
-
-          const fontSize =
-            Math.max(
-              38,
-              Math.min(
-                115,
-                baseDimension *
-                  0.115 *
-                  sticker.scale
-              )
-            );
-
-          context.save();
-
-          context.translate(
-            x,
-            y
-          );
-
-          context.rotate(
-            (sticker.rotation *
-              Math.PI) /
-              180
-          );
-
-          context.font =
-            `${fontSize}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
-
-          context.textAlign =
-            'center';
-
-          context.textBaseline =
-            'middle';
-
-          context.shadowColor =
-            'rgba(0,0,0,.28)';
-
-          context.shadowBlur =
-            Math.max(
-              2,
-              fontSize *
-                0.05
-            );
-
-          context.fillText(
-            sticker.emoji,
-            0,
-            0
-          );
-
-          context.restore();
-        }
-
-        const blob =
-          await new Promise(
-            resolve =>
-              canvas.toBlob(
-                resolve,
-                'image/jpeg',
-                0.9
-              )
-          );
-
-        if (!blob) {
-          throw new Error(
-            'No se pudo generar la foto editada.'
-          );
-        }
-
-        return new File(
-          [
-            blob,
-          ],
-          `lara-xv-${Date.now()}.jpg`,
-          {
-            type:
-              'image/jpeg',
-            lastModified:
-              Date.now(),
-          }
-        );
-      } finally {
-        URL.revokeObjectURL(
-          sourceUrl
-        );
-      }
-    };
-
-  /*
-   * ==========================================
    * ENVIAR
    * ==========================================
    */
@@ -1187,41 +843,20 @@ function Guest() {
           'info'
         );
 
-        let fileToUpload =
-          optimizedFile;
-
-        /*
-         * Si es una foto y tiene
-         * stickers, generar una copia
-         * final con los stickers.
-         */
-
-        if (
-          optimizedFile &&
-          optimizedFile.type.startsWith(
-            'image/'
-          ) &&
-          stickers.length >
-            0
-        ) {
-          fileToUpload =
-            await flattenEditedImage();
-        }
-
         /*
          * ARCHIVO
          */
 
         if (
-          fileToUpload
+          optimizedFile
         ) {
           await uploadEventMedia({
             file:
-              fileToUpload,
+              optimizedFile,
 
             originalFileName:
               originalFile?.name ||
-              fileToUpload.name,
+              optimizedFile.name,
 
             userId:
               user.id,
@@ -1417,8 +1052,7 @@ function Guest() {
         message.trim()
     ) &&
     !uploading &&
-    !preparingVideo &&
-    !generatingMessage
+    !preparingVideo
   ;
 
   /*
@@ -1756,41 +1390,75 @@ function Guest() {
               )}
 
               {/* =================================
-                  FOTO CON STICKERS
+                  FOTO SELECCIONADA
               ================================= */}
 
               {isImage &&
                 previewUrl &&
                 !preparingVideo && (
-                <PhotoStickerEditor
-                  previewUrl={
-                    previewUrl
-                  }
-                  stickers={
-                    stickers
-                  }
-                  setStickers={
-                    setStickers
-                  }
-                  selectedStickerId={
-                    selectedStickerId
-                  }
-                  setSelectedStickerId={
-                    setSelectedStickerId
-                  }
-                  onAddSticker={
-                    addSticker
-                  }
-                  onRemoveSticker={
-                    removeSelectedSticker
-                  }
-                  onScale={
-                    changeStickerScale
-                  }
-                  stickerOptions={
-                    STICKERS
-                  }
-                />
+                <>
+                  <div className="selected-file">
+                    <div className="selected-file-icon">
+                      📷
+                    </div>
+
+                    <div className="selected-file-info">
+                      <strong>
+                        {originalFile?.name}
+                      </strong>
+
+                      <span>
+                        {formatSize(
+                          optimizedFile?.size ||
+                            originalFile?.size
+                        )}
+
+                        {optimizedFile &&
+                          originalFile &&
+                          optimizedFile.size <
+                            originalFile.size && (
+                          <>
+                            {' '}
+                            · reducida{' '}
+                            {reduction}%
+                          </>
+                        )}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="remove-button"
+                      onClick={
+                        clearSelectedFile
+                      }
+                      aria-label="Quitar foto"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="preview">
+                    <div className="preview-head">
+                      <span>
+                        VISTA PREVIA
+                      </span>
+
+                      <span>
+                        ✓ LISTA
+                      </span>
+                    </div>
+
+                    <div className="preview-media">
+                      <img
+                        src={
+                          previewUrl
+                        }
+                        alt="Vista previa de la foto seleccionada"
+                      />
+                    </div>
+                  </div>
+                </>
               )}
 
               {/* =================================
@@ -2169,339 +1837,6 @@ function Guest() {
         </main>
       </div>
     </>
-  );
-}
-
-/*
- * ============================================
- * EDITOR DE STICKERS
- * ============================================
- */
-
-function PhotoStickerEditor({
-  previewUrl,
-  stickers,
-  setStickers,
-  selectedStickerId,
-  setSelectedStickerId,
-  onAddSticker,
-  onRemoveSticker,
-  onScale,
-  stickerOptions,
-}) {
-  const stageRef =
-    useRef(null);
-
-  const dragRef =
-    useRef(null);
-
-  const [imageSize, setImageSize] =
-    useState({
-      width:
-        4,
-      height:
-        3,
-    });
-
-  const handleImageLoad =
-    event => {
-      setImageSize({
-        width:
-          event.currentTarget
-            .naturalWidth ||
-          4,
-
-        height:
-          event.currentTarget
-            .naturalHeight ||
-          3,
-      });
-    };
-
-  const handleStickerPointerDown =
-    (
-      event,
-      stickerId
-    ) => {
-      event.preventDefault();
-
-      event.stopPropagation();
-
-      setSelectedStickerId(
-        stickerId
-      );
-
-      dragRef.current = {
-        stickerId,
-      };
-
-      try {
-        event.currentTarget.setPointerCapture(
-          event.pointerId
-        );
-      } catch {
-        // Algunos navegadores móviles
-        // pueden no soportarlo.
-      }
-    };
-
-  const handleStagePointerMove =
-    event => {
-      if (
-        !dragRef.current ||
-        !stageRef.current
-      ) {
-        return;
-      }
-
-      const rect =
-        stageRef.current.getBoundingClientRect();
-
-      const x =
-        Math.max(
-          5,
-          Math.min(
-            95,
-            (
-              (
-                event.clientX -
-                rect.left
-              ) /
-              rect.width
-            ) *
-              100
-          )
-        );
-
-      const y =
-        Math.max(
-          5,
-          Math.min(
-            95,
-            (
-              (
-                event.clientY -
-                rect.top
-              ) /
-              rect.height
-            ) *
-              100
-          )
-        );
-
-      setStickers(
-        current =>
-          current.map(
-            sticker =>
-              sticker.id ===
-              dragRef.current
-                .stickerId
-                ? {
-                    ...sticker,
-                    x,
-                    y,
-                  }
-                : sticker
-          )
-      );
-    };
-
-  const handleStagePointerUp =
-    () => {
-      dragRef.current =
-        null;
-    };
-
-  return (
-    <div className="photo-editor">
-
-      <div className="photo-editor-heading">
-
-        <div>
-          <span className="editor-eyebrow">
-            ✨ PERSONALIZÁ TU FOTO
-          </span>
-
-          <strong>
-            Ponéle tu toque especial 💕
-          </strong>
-
-          <small>
-            Tocá un sticker para agregarlo
-            y arrastralo con el dedo.
-          </small>
-        </div>
-
-      </div>
-
-      <div
-        ref={
-          stageRef
-        }
-        className="photo-stage"
-        style={{
-          aspectRatio:
-            `${imageSize.width}/${imageSize.height}`,
-        }}
-        onPointerMove={
-          handleStagePointerMove
-        }
-        onPointerUp={
-          handleStagePointerUp
-        }
-        onPointerCancel={
-          handleStagePointerUp
-        }
-        onPointerLeave={
-          handleStagePointerUp
-        }
-      >
-
-        <img
-          src={
-            previewUrl
-          }
-          alt="Foto para personalizar"
-          className="photo-editor-image"
-          onLoad={
-            handleImageLoad
-          }
-          draggable="false"
-        />
-
-        {stickers.map(
-          sticker => (
-            <div
-              key={
-                sticker.id
-              }
-              className={
-                selectedStickerId ===
-                sticker.id
-                  ? 'photo-sticker selected'
-                  : 'photo-sticker'
-              }
-              style={{
-                left:
-                  `${sticker.x}%`,
-
-                top:
-                  `${sticker.y}%`,
-
-                transform:
-                  `translate(-50%, -50%) rotate(${sticker.rotation}deg) scale(${sticker.scale})`,
-              }}
-              onPointerDown={
-                event =>
-                  handleStickerPointerDown(
-                    event,
-                    sticker.id
-                  )
-              }
-            >
-              {sticker.emoji}
-            </div>
-          )
-        )}
-
-      </div>
-
-      <div className="sticker-tools">
-
-        <div className="sticker-tools-title">
-          <span>
-            Elegí un sticker
-          </span>
-
-          {selectedStickerId && (
-            <button
-              type="button"
-              onClick={
-                onRemoveSticker
-              }
-              className="delete-sticker"
-            >
-              Quitar seleccionado
-            </button>
-          )}
-        </div>
-
-        <div className="sticker-list">
-          {stickerOptions.map(
-            (
-              sticker,
-              index
-            ) => (
-              <button
-                key={
-                  `${sticker}-${index}`
-                }
-                type="button"
-                className="sticker-button"
-                onClick={() =>
-                  onAddSticker(
-                    sticker
-                  )
-                }
-                aria-label={`Agregar sticker ${sticker}`}
-              >
-                {sticker}
-              </button>
-            )
-          )}
-        </div>
-
-        {selectedStickerId && (
-          <div className="sticker-size-tools">
-
-            <span>
-              Tamaño
-            </span>
-
-            <button
-              type="button"
-              onClick={() =>
-                onScale(
-                  -0.1
-                )
-              }
-            >
-              −
-            </button>
-
-            <div className="size-bar">
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                onScale(
-                  0.1
-                )
-              }
-            >
-              +
-            </button>
-
-          </div>
-        )}
-
-        {stickers.length >
-          0 && (
-          <div className="sticker-note">
-            ✨ Los stickers se guardarán
-            junto con la foto al enviarla.
-          </div>
-        )}
-
-      </div>
-
-    </div>
   );
 }
 
@@ -3965,408 +3300,6 @@ function GuestStyles() {
       }
 
       /* =====================================
-         PHOTO EDITOR
-      ===================================== */
-
-      .photo-editor {
-        margin-top:
-          11px;
-
-        overflow:
-          hidden;
-
-        border:
-          1px solid
-          rgba(255,255,255,.08);
-
-        border-radius:
-          17px;
-
-        background:
-          rgba(0,0,0,.19);
-      }
-
-      .photo-editor-heading {
-        padding:
-          13px 12px 10px;
-
-        text-align:
-          center;
-      }
-
-      .editor-eyebrow {
-        display:
-          block;
-
-        color:
-          #d1b071;
-
-        font-size:
-          8px;
-
-        font-weight:
-          900;
-
-        letter-spacing:
-          1.8px;
-      }
-
-      .photo-editor-heading strong {
-        display:
-          block;
-
-        margin-top:
-          5px;
-
-        color:
-          #f3ece4;
-
-        font-family:
-          Georgia,
-          serif;
-
-        font-size:
-          14px;
-      }
-
-      .photo-editor-heading small {
-        display:
-          block;
-
-        margin-top:
-          4px;
-
-        color:
-          #98919d;
-
-        font-size:
-          9px;
-
-        line-height:
-          1.45;
-      }
-
-      .photo-stage {
-        position:
-          relative;
-
-        width:
-          calc(100% - 18px);
-
-        margin:
-          0 auto;
-
-        overflow:
-          hidden;
-
-        border:
-          1px solid
-          rgba(255,255,255,.08);
-
-        border-radius:
-          13px;
-
-        background:
-          #02040a;
-
-        touch-action:
-          none;
-
-        user-select:
-          none;
-      }
-
-      .photo-editor-image {
-        position:
-          absolute;
-
-        inset:
-          0;
-
-        width:
-          100%;
-
-        height:
-          100%;
-
-        display:
-          block;
-
-        object-fit:
-          contain;
-
-        user-select:
-          none;
-
-        pointer-events:
-          none;
-      }
-
-      .photo-sticker {
-        position:
-          absolute;
-
-        z-index:
-          4;
-
-        display:
-          grid;
-
-        place-items:
-          center;
-
-        padding:
-          3px;
-
-        font-size:
-          clamp(32px, 10vw, 68px);
-
-        line-height:
-          1;
-
-        cursor:
-          grab;
-
-        touch-action:
-          none;
-
-        filter:
-          drop-shadow(
-            0 3px 5px
-            rgba(0,0,0,.27)
-          );
-      }
-
-      .photo-sticker:active {
-        cursor:
-          grabbing;
-      }
-
-      .photo-sticker.selected {
-        outline:
-          1px dashed
-          rgba(230,196,127,.80);
-
-        outline-offset:
-          5px;
-
-        border-radius:
-          8px;
-      }
-
-      .sticker-tools {
-        padding:
-          12px;
-      }
-
-      .sticker-tools-title {
-        display:
-          flex;
-
-        align-items:
-          center;
-
-        justify-content:
-          space-between;
-
-        gap:
-          12px;
-
-        margin-bottom:
-          8px;
-
-        color:
-          #b8b0bc;
-
-        font-size:
-          9px;
-
-        font-weight:
-          800;
-      }
-
-      .delete-sticker {
-        padding:
-          5px 8px;
-
-        border:
-          none;
-
-        border-radius:
-          7px;
-
-        background:
-          rgba(225,119,134,.08);
-
-        color:
-          #dc9da7;
-
-        cursor:
-          pointer;
-
-        font-size:
-          8px;
-      }
-
-      .sticker-list {
-        display:
-          flex;
-
-        gap:
-          6px;
-
-        overflow-x:
-          auto;
-
-        padding-bottom:
-          4px;
-
-        scrollbar-width:
-          thin;
-      }
-
-      .sticker-button {
-        width:
-          42px;
-
-        height:
-          42px;
-
-        flex:
-          0 0 auto;
-
-        display:
-          grid;
-
-        place-items:
-          center;
-
-        border:
-          1px solid
-          rgba(255,255,255,.08);
-
-        border-radius:
-          12px;
-
-        background:
-          rgba(255,255,255,.035);
-
-        font-size:
-          22px;
-
-        cursor:
-          pointer;
-
-        transition:
-          transform .15s ease,
-          border-color .15s ease,
-          background .15s ease;
-      }
-
-      .sticker-button:hover {
-        transform:
-          translateY(-1px);
-
-        border-color:
-          rgba(231,196,130,.32);
-
-        background:
-          rgba(231,196,130,.06);
-      }
-
-      .sticker-size-tools {
-        margin-top:
-          9px;
-
-        display:
-          flex;
-
-        align-items:
-          center;
-
-        justify-content:
-          center;
-
-        gap:
-          8px;
-
-        color:
-          #88818d;
-
-        font-size:
-          9px;
-      }
-
-      .sticker-size-tools button {
-        width:
-          27px;
-
-        height:
-          27px;
-
-        display:
-          grid;
-
-        place-items:
-          center;
-
-        border:
-          1px solid
-          rgba(255,255,255,.08);
-
-        border-radius:
-          8px;
-
-        background:
-          rgba(255,255,255,.035);
-
-        color:
-          #ddd5cc;
-
-        cursor:
-          pointer;
-      }
-
-      .size-bar {
-        display:
-          flex;
-
-        gap:
-          3px;
-      }
-
-      .size-bar span {
-        width:
-          8px;
-
-        height:
-          4px;
-
-        border-radius:
-          999px;
-
-        background:
-          rgba(229,194,126,.35);
-      }
-
-      .sticker-note {
-        margin-top:
-          7px;
-
-        color:
-          #777e8f;
-
-        text-align:
-          center;
-
-        font-size:
-          8px;
-
-        line-height:
-          1.5;
-      }
-
-      /* =====================================
          PREVIEW VIDEO
       ===================================== */
 
@@ -4430,7 +3363,8 @@ function GuestStyles() {
           #02040a;
       }
 
-      .preview-media video {
+      .preview-media video,
+      .preview-media img {
         display:
           block;
 
@@ -5344,6 +4278,242 @@ function GuestStyles() {
       }
 
       /* =====================================
+         LEGIBILIDAD Y CONTRASTE
+      ===================================== */
+
+      .composer {
+        border-color:
+          rgba(255,255,255,.16);
+
+        background:
+          linear-gradient(
+            180deg,
+            rgba(10,12,22,.90),
+            rgba(7,9,17,.86)
+          );
+
+        box-shadow:
+          0 24px 70px
+          rgba(0,0,0,.34),
+          inset 0 1px 0
+          rgba(255,255,255,.035);
+
+        backdrop-filter:
+          blur(18px);
+      }
+
+      .composer-title p {
+        color:
+          #eee8ef;
+
+        font-size:
+          13px;
+      }
+
+      .eyebrow {
+        font-size:
+          10px;
+      }
+
+      .field > label,
+      .message-label-row label {
+        color:
+          #fffaf3;
+
+        font-size:
+          14px;
+
+        font-weight:
+          800;
+
+        text-shadow:
+          0 1px 8px
+          rgba(0,0,0,.35);
+      }
+
+      .field > label > span:last-child,
+      .message-label-row label > span:last-child {
+        color:
+          #c4bdc7;
+
+        font-size:
+          11px;
+      }
+
+      .input-shell,
+      .textarea-shell {
+        border:
+          1px solid
+          rgba(244,221,180,.30);
+
+        background:
+          rgba(4,6,12,.78);
+
+        box-shadow:
+          inset 0 1px 0
+          rgba(255,255,255,.025);
+      }
+
+      .input-shell:focus-within,
+      .textarea-shell:focus-within {
+        border-color:
+          rgba(239,207,145,.82);
+
+        box-shadow:
+          0 0 0 3px
+          rgba(239,207,145,.13),
+          inset 0 1px 0
+          rgba(255,255,255,.03);
+      }
+
+      .input-shell input,
+      .textarea-shell textarea {
+        color:
+          #ffffff;
+
+        font-size:
+          16px;
+      }
+
+      .input-shell input::placeholder,
+      .textarea-shell textarea::placeholder {
+        color:
+          #b5afba;
+
+        opacity:
+          1;
+      }
+
+      .counter,
+      .textarea-counter {
+        color:
+          #b9b2bc;
+
+        font-size:
+          10px;
+      }
+
+      .media-main-button,
+      .camera-button {
+        border-color:
+          rgba(239,207,145,.34);
+
+        background:
+          linear-gradient(
+            145deg,
+            rgba(24,22,26,.94),
+            rgba(17,16,24,.92)
+          );
+
+        box-shadow:
+          inset 0 1px 0
+          rgba(255,255,255,.035);
+      }
+
+      .media-copy strong {
+        color:
+          #fffaf4;
+
+        font-size:
+          14px;
+      }
+
+      .media-copy small,
+      .field-hint {
+        color:
+          #c8c1ca;
+
+        font-size:
+          11px;
+      }
+
+      .selected-file {
+        border-color:
+          rgba(239,207,145,.24);
+
+        background:
+          rgba(5,7,13,.78);
+      }
+
+      .selected-file-info strong {
+        color:
+          #fffaf4;
+
+        font-size:
+          13px;
+      }
+
+      .selected-file-info span {
+        color:
+          #c1bbc5;
+
+        font-size:
+          11px;
+      }
+
+      .remove-button {
+        width:
+          38px;
+
+        height:
+          38px;
+
+        border-color:
+          rgba(255,255,255,.14);
+
+        background:
+          rgba(255,255,255,.06);
+
+        color:
+          #f1e9e2;
+      }
+
+      .preview {
+        border-color:
+          rgba(255,255,255,.12);
+
+        background:
+          rgba(3,5,10,.78);
+      }
+
+      .preview-head {
+        color:
+          #aaa4ae;
+
+        font-size:
+          9px;
+      }
+
+      .ai-help-button {
+        min-height:
+          38px;
+
+        padding:
+          8px 12px;
+
+        font-size:
+          11px;
+      }
+
+      .suggestion-text {
+        font-size:
+          13px;
+      }
+
+      .suggestion-style,
+      .suggestion-use,
+      .ai-suggestions-header span,
+      .ai-loading {
+        font-size:
+          10px;
+      }
+
+      .ai-suggestions-header strong {
+        font-size:
+          12px;
+      }
+
+      /* =====================================
          MOBILE
       ===================================== */
 
@@ -5398,6 +4568,43 @@ function GuestStyles() {
             21px;
         }
 
+        .composer {
+          background:
+            rgba(8,10,18,.93);
+
+          border-color:
+            rgba(255,255,255,.18);
+        }
+
+        .composer-title p {
+          font-size:
+            13px;
+        }
+
+        .field > label,
+        .message-label-row label {
+          font-size:
+            14px;
+        }
+
+        .input-shell {
+          min-height:
+            56px;
+        }
+
+        .input-shell input {
+          padding:
+            15px 14px;
+        }
+
+        .textarea-shell textarea {
+          min-height:
+            120px;
+
+          padding:
+            15px 14px 30px;
+        }
+
         .message-label-row {
           align-items:
             flex-start;
@@ -5423,21 +4630,7 @@ function GuestStyles() {
             70px;
         }
 
-        .photo-editor-heading strong {
-          font-size:
-            13px;
-        }
 
-        .sticker-button {
-          width:
-            39px;
-
-          height:
-            39px;
-
-          font-size:
-            20px;
-        }
 
         .guest-trust {
           padding:
@@ -5548,8 +4741,7 @@ function GuestStyles() {
 
         .send-button,
         .media-main-button,
-        .camera-button,
-        .sticker-button {
+        .camera-button {
           transition:
             none !important;
         }
