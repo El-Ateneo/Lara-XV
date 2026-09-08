@@ -1183,20 +1183,32 @@ function Admin() {
                     post.moderation_source ===
                       'ai';
 
-                  const aiLabel =
-                    post.ai_status ===
-                    'safe'
-                      ? 'SAFE'
-                      : post.ai_status ===
-                        'review'
-                      ? 'REVIEW'
-                      : post.ai_status ===
-                        'blocked'
-                      ? 'BLOCKED'
-                      : post.ai_status ===
-                        'error'
-                      ? 'ERROR'
-                      : 'ANALIZANDO';
+                  const isVideo =
+                    post.file_type?.startsWith('video/');
+
+                  const aiLabel = isVideo
+                    ? 'MANUAL'
+                    : post.ai_status === 'safe'
+                    ? 'SEGURO'
+                    : post.ai_status === 'review'
+                    ? 'REVISAR'
+                    : post.ai_status === 'blocked'
+                    ? 'REVISIÓN'
+                    : post.ai_status === 'error'
+                    ? 'NO DISPONIBLE'
+                    : 'ANALIZANDO';
+
+                  const aiTitle = isVideo
+                    ? '👤 Revisión manual'
+                    : post.ai_status === 'error'
+                    ? '⚠ IA no disponible'
+                    : '✦ Análisis IA';
+
+                  const aiReason = isVideo
+                    ? 'Los videos se revisan manualmente.'
+                    : post.ai_status === 'error'
+                    ? 'El recuerdo quedó pendiente para revisión manual.'
+                    : post.ai_reason;
 
                   return (
                     <article
@@ -1244,40 +1256,25 @@ function Admin() {
                         </span>
                       </header>
 
-                      <div className="ai-box">
+                      <div className={`ai-box ${isVideo ? 'manual-review' : post.ai_status || 'pending'}`}>
                         <div className="ai-row">
-                          <strong>
-                            ✦ Análisis IA
-                          </strong>
+                          <strong>{aiTitle}</strong>
 
                           <span
-                            className={`ai-pill ${post.ai_status || 'pending'}`}
+                            className={`ai-pill ${isVideo ? 'manual' : post.ai_status || 'pending'}`}
                           >
-                            {
-                              aiLabel
-                            }
+                            {aiLabel}
                           </span>
                         </div>
 
-                        <div className="ai-details">
-                          <span>
-                            Confianza
-                          </span>
-
-                          <strong>
-                            {
-                              confidence
-                            }
-                          </strong>
-                        </div>
-
-                        {post.ai_reason && (
-                          <p>
-                            {
-                              post.ai_reason
-                            }
-                          </p>
+                        {!isVideo && typeof post.ai_score === 'number' && (
+                          <div className="ai-details">
+                            <span>Confianza</span>
+                            <strong>{confidence}</strong>
+                          </div>
                         )}
+
+                        {aiReason && <p>{aiReason}</p>}
                       </div>
 
                       {autoApproved && (
@@ -2080,6 +2077,16 @@ const CSS = `
     color: #9ba2af;
   }
 
+  .ai-pill.manual {
+    background: rgba(232,200,138,.09);
+    color: #e6c77f;
+  }
+
+  .ai-box.manual-review {
+    border-color: rgba(232,200,138,.10);
+    background: rgba(232,200,138,.035);
+  }
+
   .ai-details {
     margin-top: 9px;
     display: flex;
@@ -2514,6 +2521,65 @@ const CSS = `
       font-size: 29px;
     }
   }
+
+  /* Mobile-first moderation UX */
+  @media (max-width: 720px) {
+    body { overflow-x: hidden; }
+    .admin-shell { min-height: 100dvh; padding-bottom: env(safe-area-inset-bottom); }
+    .admin-sidebar { padding: calc(8px + env(safe-area-inset-top)) 10px 8px; background: rgba(8,11,21,.94); backdrop-filter: blur(20px); }
+    .sidebar-brand { padding: 0; }
+    .brand-mark.small { width: 38px; height: 38px; border-radius: 11px; font-size: 10px; }
+    .nav { scrollbar-width: none; }
+    .nav::-webkit-scrollbar { display: none; }
+    .nav-item { min-height: 42px; gap: 5px; border-radius: 11px; }
+    .nav-icon { font-size: 15px; }
+    .nav-count { padding: 3px 5px; font-size: 10px; }
+    .admin-main { padding: 18px 12px calc(40px + env(safe-area-inset-bottom)); }
+    .topbar { align-items: center; gap: 10px; }
+    .topbar h1 { margin: 5px 0 3px; font-size: 28px; letter-spacing: -1px; }
+    .topbar p { display: none; }
+    .refresh-button { min-width: 44px; min-height: 44px; padding: 10px 12px; }
+    .stats-grid { margin-top: 18px; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; }
+    .stat-card { min-height: 72px; padding: 10px 7px; border-radius: 13px; text-align: center; justify-items: center; }
+    .stat-card span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
+    .stat-card strong { font-size: 23px; }
+    .ai-summary { padding: 12px; gap: 10px; }
+    .ai-orb { width: 36px; height: 36px; border-radius: 11px; }
+    .ai-summary-data { width: 100%; justify-content: space-between; gap: 8px; }
+    .posts-section { margin-top: 22px; }
+    .section-heading h2 { font-size: 19px; }
+    .posts-grid { margin-top: 12px; gap: 14px; grid-template-columns: 1fr; }
+    .post-card { border-radius: 18px; }
+    .post-card:hover { transform: none; }
+    .post-card-header { padding: 14px 14px 0; align-items: flex-start; }
+    .avatar.post { width: 38px; height: 38px; }
+    .author strong { font-size: 14px; }
+    .author span { font-size: 10px; }
+    .status-pill, .ai-pill { flex: 0 0 auto; padding: 6px 8px; font-size: 8px; }
+    .media-box { margin-top: 13px; padding: 0 14px; }
+    .admin-media { max-height: 62vh; aspect-ratio: auto; min-height: 220px; object-fit: contain; border-radius: 14px; }
+    .message-box { margin: 12px 14px 0; padding: 12px; }
+    .message-box p { font-size: 13px; line-height: 1.5; }
+    .ai-box { margin: 12px 14px 0; padding: 11px 12px; }
+    .ai-row strong { font-size: 12px; }
+    .ai-box p { font-size: 11px; }
+    .decision { margin: 10px 14px 0; }
+    .actions { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; padding: 14px; }
+    .actions button { min-height: 48px; padding: 12px 8px; border-radius: 12px; font-size: 12px; touch-action: manipulation; }
+    .actions .trash { grid-column: 1 / -1; min-height: 42px; }
+    .empty-state { min-height: 220px; padding: 28px 18px; }
+    .auth-page { min-height: 100dvh; padding: calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom)); }
+    .auth-card { padding: 28px 20px; border-radius: 22px; }
+    .auth-card h1 { font-size: 29px; }
+    .auth-form input, .primary-button { min-height: 48px; font-size: 16px; }
+  }
+
+  @media (max-width: 390px) {
+    .admin-main { padding-left: 10px; padding-right: 10px; }
+    .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .stat-card { min-height: 68px; }
+  }
+
 `;
 
 export default Admin;
