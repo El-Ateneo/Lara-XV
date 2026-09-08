@@ -25,7 +25,7 @@ const TABS = [
     id: 'pending',
     label: 'Pendientes',
     shortLabel: 'Pendientes',
-    icon: '⏳',
+    icon: '◷',
   },
   {
     id: 'approved',
@@ -37,13 +37,13 @@ const TABS = [
     id: 'rejected',
     label: 'Rechazados',
     shortLabel: 'Rechazados',
-    icon: '×',
+    icon: '✕',
   },
   {
     id: 'trashed',
     label: 'Papelera',
     shortLabel: 'Papelera',
-    icon: '⌫',
+    icon: '🗑',
   },
 ];
 
@@ -1638,14 +1638,11 @@ function Admin() {
                       {/* ACCIONES */}
 
                       <div className="actions">
-                        {post.status ===
-                          'pending' && (
-                          <>
+                        {post.status !== 'approved' &&
+                          post.status !== 'trashed' && (
                             <button
                               className="approve"
-                              disabled={
-                                processing
-                              }
+                              disabled={processing}
                               onClick={() =>
                                 changeStatus(
                                   post.id,
@@ -1655,12 +1652,13 @@ function Admin() {
                             >
                               ✓ Aprobar
                             </button>
+                          )}
 
+                        {post.status !== 'rejected' &&
+                          post.status !== 'trashed' && (
                             <button
                               className="reject"
-                              disabled={
-                                processing
-                              }
+                              disabled={processing}
                               onClick={() =>
                                 changeStatus(
                                   post.id,
@@ -1668,40 +1666,45 @@ function Admin() {
                                 )
                               }
                             >
-                              × Rechazar
+                              ✕ Rechazar
                             </button>
-                          </>
-                        )}
+                          )}
 
-                        {post.status !==
-                          'trashed' && (
+                        {(post.status === 'approved' ||
+                          post.status === 'rejected') && (
+                            <button
+                              className="pending-button"
+                              disabled={processing}
+                              onClick={() =>
+                                changeStatus(
+                                  post.id,
+                                  'pending'
+                                )
+                              }
+                            >
+                              ↶ Volver a pendiente
+                            </button>
+                          )}
+
+                        {post.status !== 'trashed' && (
                           <button
                             className="trash"
-                            disabled={
-                              processing
-                            }
+                            disabled={processing}
                             onClick={() =>
-                              sendToTrash(
-                                post
-                              )
+                              sendToTrash(post)
                             }
                           >
-                            ⌫ Enviar a papelera
+                            🗑 Enviar a papelera
                           </button>
                         )}
 
-                        {post.status ===
-                          'trashed' && (
+                        {post.status === 'trashed' && (
                           <>
                             <button
                               className="restore"
-                              disabled={
-                                processing
-                              }
+                              disabled={processing}
                               onClick={() =>
-                                restore(
-                                  post
-                                )
+                                restore(post)
                               }
                             >
                               ↩ Restaurar
@@ -1709,16 +1712,12 @@ function Admin() {
 
                             <button
                               className="delete"
-                              disabled={
-                                processing
-                              }
+                              disabled={processing}
                               onClick={() =>
-                                permanentDelete(
-                                  post
-                                )
+                                permanentDelete(post)
                               }
                             >
-                              × Eliminar
+                              ✕ Eliminar definitivamente
                             </button>
                           </>
                         )}
@@ -2744,6 +2743,14 @@ const CSS = `
     color: #ef929f;
   }
 
+  .pending-button {
+    border:
+      1px solid rgba(230,188,95,.20);
+    background:
+      rgba(230,188,95,.08);
+    color: #e8c46f;
+  }
+
   .trash {
     grid-column: 1 / -1;
     border:
@@ -3240,65 +3247,85 @@ const CSS = `
     .mobile-tabs {
       display: grid;
       grid-template-columns:
-        repeat(4, minmax(0,1fr));
-      gap: 5px;
+        repeat(2, minmax(0,1fr));
+      gap: 9px;
       margin:
-        12px 0 20px;
-      padding: 5px;
-      border:
-        1px solid
-        rgba(255,255,255,.055);
-      border-radius: 15px;
-      background:
-        rgba(255,255,255,.02);
+        14px 0 22px;
+      padding: 0;
+      border: 0;
+      background: transparent;
     }
 
     .mobile-tab {
       min-width: 0;
-      min-height: 58px;
+      min-height: 74px;
       display: grid;
       align-content: center;
-      gap: 4px;
-      padding: 6px 3px;
+      gap: 7px;
+      padding: 11px 12px;
       border:
-        1px solid transparent;
-      border-radius: 11px;
+        1px solid rgba(255,255,255,.09);
+      border-radius: 14px;
       background:
-        transparent;
-      color: #7f8899;
+        linear-gradient(
+          145deg,
+          rgba(255,255,255,.045),
+          rgba(255,255,255,.018)
+        );
+      color: #a6adbb;
+      box-shadow:
+        0 10px 24px rgba(0,0,0,.14);
       cursor: pointer;
+      transition:
+        transform .18s ease,
+        border-color .18s ease,
+        background .18s ease;
+    }
+
+    .mobile-tab:active {
+      transform: scale(.98);
     }
 
     .mobile-tab.active {
       border-color:
-        rgba(239,208,148,.13);
+        rgba(239,208,148,.38);
       background:
         linear-gradient(
           135deg,
-          rgba(239,208,148,.10),
-          rgba(211,161,186,.06)
+          rgba(239,208,148,.16),
+          rgba(211,161,186,.09)
         );
       color: #fff;
+      box-shadow:
+        0 12px 28px rgba(0,0,0,.18),
+        inset 0 0 20px rgba(239,208,148,.035);
     }
 
     .mobile-tab-top {
       display: flex;
       align-items: center;
       justify-content:
-        center;
-      gap: 5px;
-      font-size: 12px;
+        space-between;
+      gap: 8px;
+      font-size: 19px;
     }
 
     .mobile-tab-top b {
+      min-width: 27px;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.065);
       color: #efd094;
-      font-size: 12px;
+      font-size: 11px;
+      text-align: center;
     }
 
     .mobile-tab small {
       overflow: hidden;
-      font-size: 8px;
-      font-weight: 750;
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .15px;
+      text-align: left;
       text-overflow:
         ellipsis;
       white-space: nowrap;
@@ -3531,16 +3558,16 @@ const CSS = `
     }
 
     .mobile-tabs {
-      gap: 3px;
+      gap: 7px;
     }
 
     .mobile-tab {
-      padding-left: 2px;
-      padding-right: 2px;
+      min-height: 70px;
+      padding: 10px;
     }
 
     .mobile-tab small {
-      font-size: 7.5px;
+      font-size: 9px;
     }
 
     .status-pill {
