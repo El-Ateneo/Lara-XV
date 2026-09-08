@@ -24,24 +24,35 @@ const TABS = [
   {
     id: 'pending',
     label: 'Pendientes',
+    shortLabel: 'Pendientes',
     icon: '⏳',
   },
   {
     id: 'approved',
     label: 'Aprobados',
+    shortLabel: 'Aprobados',
     icon: '✓',
   },
   {
     id: 'rejected',
     label: 'Rechazados',
+    shortLabel: 'Rechazados',
     icon: '×',
   },
   {
     id: 'trashed',
     label: 'Papelera',
+    shortLabel: 'Papelera',
     icon: '⌫',
   },
 ];
+
+const STATUS_LABELS = {
+  pending: 'PENDIENTE',
+  approved: 'APROBADO',
+  rejected: 'RECHAZADO',
+  trashed: 'PAPELERA',
+};
 
 function Admin() {
   const [user, setUser] =
@@ -81,6 +92,12 @@ function Admin() {
     processingPostId,
     setProcessingPostId,
   ] = useState(null);
+
+  /*
+   * ==========================================
+   * CARGAR RECUERDOS
+   * ==========================================
+   */
 
   const loadPosts =
     useCallback(async () => {
@@ -136,18 +153,12 @@ function Admin() {
         const loaded =
           data ?? [];
 
-        setPosts(
-          loaded
-        );
+        setPosts(loaded);
 
         const urls = {};
 
-        for (
-          const post of loaded
-        ) {
-          if (
-            !post.storage_path
-          ) {
+        for (const post of loaded) {
+          if (!post.storage_path) {
             continue;
           }
 
@@ -158,28 +169,22 @@ function Admin() {
               );
 
             if (url) {
-              urls[
-                post.id
-              ] = url;
+              urls[post.id] =
+                url;
             }
           } catch (
             mediaError
           ) {
             console.error(
+              'Error obteniendo multimedia:',
               mediaError
             );
           }
         }
 
-        setMediaUrls(
-          urls
-        );
-      } catch (
-        error
-      ) {
-        console.error(
-          error
-        );
+        setMediaUrls(urls);
+      } catch (error) {
+        console.error(error);
 
         setError(
           error.message ||
@@ -191,6 +196,12 @@ function Admin() {
         );
       }
     }, []);
+
+  /*
+   * ==========================================
+   * SESIÓN
+   * ==========================================
+   */
 
   useEffect(() => {
     const checkSession =
@@ -206,10 +217,6 @@ function Admin() {
           if (
             !session?.user
           ) {
-            setCheckingSession(
-              false
-            );
-
             return;
           }
 
@@ -229,12 +236,8 @@ function Admin() {
           setUser(
             session.user
           );
-        } catch (
-          error
-        ) {
-          console.error(
-            error
-          );
+        } catch (error) {
+          console.error(error);
 
           setError(
             error.message ||
@@ -260,6 +263,12 @@ function Admin() {
     user,
     loadPosts,
   ]);
+
+  /*
+   * ==========================================
+   * REALTIME
+   * ==========================================
+   */
 
   useEffect(() => {
     if (!user) {
@@ -296,8 +305,14 @@ function Admin() {
     loadPosts,
   ]);
 
+  /*
+   * ==========================================
+   * LOGIN
+   * ==========================================
+   */
+
   const handleLogin =
-    async (event) => {
+    async event => {
       event.preventDefault();
 
       setError('');
@@ -343,12 +358,8 @@ function Admin() {
         );
 
         setPassword('');
-      } catch (
-        error
-      ) {
-        console.error(
-          error
-        );
+      } catch (error) {
+        console.error(error);
 
         setError(
           error.message ||
@@ -366,7 +377,15 @@ function Admin() {
       setUser(null);
       setPosts([]);
       setMediaUrls({});
+      setSuccess('');
+      setError('');
     };
+
+  /*
+   * ==========================================
+   * MODERACIÓN MANUAL
+   * ==========================================
+   */
 
   const changeStatus =
     async (
@@ -385,7 +404,9 @@ function Admin() {
           error,
         } =
           await supabase
-            .from('event_posts')
+            .from(
+              'event_posts'
+            )
             .update({
               status,
               moderation_source:
@@ -411,16 +432,15 @@ function Admin() {
         await loadPosts();
 
         setSuccess(
-          status === 'approved'
-            ? 'Recuerdo aprobado manualmente. ✓'
-            : 'Recuerdo rechazado manualmente. ×'
+          status ===
+            'approved'
+            ? 'Recuerdo aprobado correctamente. ✓'
+            : 'Recuerdo rechazado correctamente.'
         );
-      } catch (
-        error
-      ) {
+      } catch (error) {
         setError(
           error.message ||
-            'No se pudo actualizar.'
+            'No se pudo actualizar el recuerdo.'
         );
       } finally {
         setProcessingPostId(
@@ -429,10 +449,14 @@ function Admin() {
       }
     };
 
+  /*
+   * ==========================================
+   * PAPELERA
+   * ==========================================
+   */
+
   const sendToTrash =
-    async (
-      post
-    ) => {
+    async post => {
       const confirmed =
         window.confirm(
           '¿Enviar este recuerdo a la papelera?\n\nPodrás restaurarlo posteriormente.'
@@ -447,6 +471,9 @@ function Admin() {
           post.id
         );
 
+        setError('');
+        setSuccess('');
+
         await movePostToTrash(
           post.id
         );
@@ -454,11 +481,9 @@ function Admin() {
         await loadPosts();
 
         setSuccess(
-          'Recuerdo enviado a la papelera. 🗑️'
+          'Recuerdo enviado a la papelera.'
         );
-      } catch (
-        error
-      ) {
+      } catch (error) {
         setError(
           error.message ||
             'No se pudo enviar a la papelera.'
@@ -471,9 +496,7 @@ function Admin() {
     };
 
   const restore =
-    async (
-      post
-    ) => {
+    async post => {
       const confirmed =
         window.confirm(
           '¿Restaurar este recuerdo?'
@@ -488,19 +511,19 @@ function Admin() {
           post.id
         );
 
-        const result =
-          await restorePost(
-            post.id
-          );
+        setError('');
+        setSuccess('');
+
+        await restorePost(
+          post.id
+        );
 
         await loadPosts();
 
         setSuccess(
-          `Recuerdo restaurado como ${result?.restoredStatus || 'pending'}. ↩️`
+          'Recuerdo restaurado correctamente.'
         );
-      } catch (
-        error
-      ) {
+      } catch (error) {
         setError(
           error.message ||
             'No se pudo restaurar.'
@@ -513,9 +536,7 @@ function Admin() {
     };
 
   const permanentDelete =
-    async (
-      post
-    ) => {
+    async post => {
       const confirmed =
         window.confirm(
           '🚨 ELIMINAR DEFINITIVAMENTE\n\nSe eliminarán el recuerdo y su archivo.\n\nEsta acción no se puede deshacer.\n\n¿Continuar?'
@@ -530,6 +551,9 @@ function Admin() {
           post.id
         );
 
+        setError('');
+        setSuccess('');
+
         await deletePostPermanently(
           post.id
         );
@@ -537,11 +561,9 @@ function Admin() {
         await loadPosts();
 
         setSuccess(
-          'Recuerdo eliminado definitivamente. 🗑️'
+          'Recuerdo eliminado definitivamente.'
         );
-      } catch (
-        error
-      ) {
+      } catch (error) {
         setError(
           error.message ||
             'No se pudo eliminar.'
@@ -553,34 +575,40 @@ function Admin() {
       }
     };
 
+  /*
+   * ==========================================
+   * CONTADORES
+   * ==========================================
+   */
+
   const counts =
     useMemo(
       () => ({
         pending:
           posts.filter(
-            p =>
-              p.status ===
+            post =>
+              post.status ===
               'pending'
           ).length,
 
         approved:
           posts.filter(
-            p =>
-              p.status ===
+            post =>
+              post.status ===
               'approved'
           ).length,
 
         rejected:
           posts.filter(
-            p =>
-              p.status ===
+            post =>
+              post.status ===
               'rejected'
           ).length,
 
         trashed:
           posts.filter(
-            p =>
-              p.status ===
+            post =>
+              post.status ===
               'trashed'
           ).length,
       }),
@@ -592,22 +620,22 @@ function Admin() {
       () => ({
         safe:
           posts.filter(
-            p =>
-              p.ai_status ===
+            post =>
+              post.ai_status ===
               'safe'
           ).length,
 
         review:
           posts.filter(
-            p =>
-              p.ai_status ===
+            post =>
+              post.ai_status ===
               'review'
           ).length,
 
         blocked:
           posts.filter(
-            p =>
-              p.ai_status ===
+            post =>
+              post.ai_status ===
               'blocked'
           ).length,
       }),
@@ -616,10 +644,23 @@ function Admin() {
 
   const currentPosts =
     posts.filter(
-      p =>
-        p.status ===
+      post =>
+        post.status ===
         activeTab
     );
+
+  const activeTabData =
+    TABS.find(
+      tab =>
+        tab.id ===
+        activeTab
+    );
+
+  /*
+   * ==========================================
+   * UTILIDADES
+   * ==========================================
+   */
 
   const formatDate =
     date =>
@@ -627,7 +668,13 @@ function Admin() {
         ? new Date(
             date
           ).toLocaleString(
-            'es-AR'
+            'es-AR',
+            {
+              dateStyle:
+                'short',
+              timeStyle:
+                'short',
+            }
           )
         : '';
 
@@ -637,29 +684,119 @@ function Admin() {
         return '0 B';
       }
 
-      if (
-        bytes <
-        1024
-      ) {
+      if (bytes < 1024) {
         return `${bytes} B`;
       }
 
       if (
         bytes <
-        1024 *
-          1024
+        1024 * 1024
       ) {
         return `${(
-          bytes /
-          1024
-        ).toFixed(1)} KB`;
+          bytes / 1024
+        ).toFixed(
+          1
+        )} KB`;
       }
 
       return `${(
         bytes /
         1024 /
         1024
-      ).toFixed(2)} MB`;
+      ).toFixed(
+        2
+      )} MB`;
+    };
+
+  const getModerationView =
+    post => {
+      const isVideo =
+        post.file_type?.startsWith(
+          'video/'
+        );
+
+      if (isVideo) {
+        return {
+          type: 'manual',
+          title:
+            'Revisión manual',
+          badge: 'MANUAL',
+          text:
+            'Los videos se revisan manualmente.',
+          showConfidence:
+            false,
+        };
+      }
+
+      switch (
+        post.ai_status
+      ) {
+        case 'safe':
+          return {
+            type: 'safe',
+            title:
+              'Seguro por Gemini',
+            badge: 'SEGURO',
+            text:
+              post.ai_reason ||
+              'El contenido fue considerado seguro.',
+            showConfidence:
+              true,
+          };
+
+        case 'review':
+          return {
+            type: 'review',
+            title:
+              'Revisión recomendada',
+            badge: 'REVISAR',
+            text:
+              post.ai_reason ||
+              'Conviene revisar este contenido antes de aprobarlo.',
+            showConfidence:
+              true,
+          };
+
+        case 'blocked':
+          return {
+            type:
+              'blocked',
+            title:
+              'Revisión necesaria',
+            badge: 'REVISAR',
+            text:
+              post.ai_reason ||
+              'Gemini detectó contenido que requiere revisión.',
+            showConfidence:
+              true,
+          };
+
+        case 'error':
+          return {
+            type: 'manual',
+            title:
+              'IA no disponible',
+            badge: 'MANUAL',
+            text:
+              'El recuerdo quedó pendiente para revisión manual.',
+            showConfidence:
+              false,
+          };
+
+        default:
+          return {
+            type:
+              'pending',
+            title:
+              'Analizando con Gemini',
+            badge:
+              'ANALIZANDO',
+            text:
+              'La revisión automática está en proceso.',
+            showConfidence:
+              false,
+          };
+      }
     };
 
   const renderMedia =
@@ -684,7 +821,7 @@ function Admin() {
             controls
             playsInline
             preload="metadata"
-            className="admin-media"
+            className="admin-media video"
           />
         );
       }
@@ -692,11 +829,22 @@ function Admin() {
       return (
         <img
           src={url}
-          alt={`Recuerdo de ${post.author_name}`}
+          alt={`Recuerdo de ${
+            post.author_name ||
+            'invitado'
+          }`}
           className="admin-media"
+          loading="lazy"
+          decoding="async"
         />
       );
     };
+
+  /*
+   * ==========================================
+   * CARGANDO SESIÓN
+   * ==========================================
+   */
 
   if (
     checkingSession
@@ -704,8 +852,8 @@ function Admin() {
     return (
       <Shell>
         <div className="center-state">
-          <div className="brand-mark">
-            L15
+          <div className="loading-symbol">
+            ✦
           </div>
 
           <h1>
@@ -720,6 +868,12 @@ function Admin() {
     );
   }
 
+  /*
+   * ==========================================
+   * LOGIN
+   * ==========================================
+   */
+
   if (!user) {
     return (
       <Shell>
@@ -728,23 +882,31 @@ function Admin() {
           <div className="auth-orb orb-two" />
 
           <div className="auth-card">
-            <div className="brand-mark">
-              L15
+            <div className="auth-crown">
+              ♕
             </div>
 
-            <div className="eyebrow">
-              LARA XV
+            <div className="auth-name">
+              LARA
+            </div>
+
+            <div className="auth-xv">
+              XV
+            </div>
+
+            <div className="auth-decoration">
+              <span />
+              ✦
+              <span />
             </div>
 
             <h1>
-              Centro de
-              administración
+              Administración
             </h1>
 
             <p className="auth-description">
-              Gestioná recuerdos,
-              moderación y contenido
-              del evento.
+              Ingresá para gestionar
+              los recuerdos del evento.
             </p>
 
             <form
@@ -759,13 +921,17 @@ function Admin() {
                 <input
                   type="email"
                   value={email}
-                  onChange={e =>
-                    setEmail(
-                      e.target.value
-                    )
+                  onChange={
+                    event =>
+                      setEmail(
+                        event
+                          .target
+                          .value
+                      )
                   }
                   autoComplete="email"
                   placeholder="admin@email.com"
+                  required
                 />
               </label>
 
@@ -774,14 +940,20 @@ function Admin() {
 
                 <input
                   type="password"
-                  value={password}
-                  onChange={e =>
-                    setPassword(
-                      e.target.value
-                    )
+                  value={
+                    password
+                  }
+                  onChange={
+                    event =>
+                      setPassword(
+                        event
+                          .target
+                          .value
+                      )
                   }
                   autoComplete="current-password"
                   placeholder="Tu contraseña"
+                  required
                 />
               </label>
 
@@ -799,7 +971,7 @@ function Admin() {
               >
                 {loading
                   ? 'Ingresando...'
-                  : 'Ingresar al panel'}
+                  : 'Ingresar'}
               </button>
             </form>
 
@@ -812,17 +984,28 @@ function Admin() {
     );
   }
 
+  /*
+   * ==========================================
+   * PANEL
+   * ==========================================
+   */
+
   return (
     <Shell>
       <div className="admin-shell">
+
+        {/* =====================================
+            SIDEBAR ESCRITORIO
+        ===================================== */}
+
         <aside className="admin-sidebar">
           <div>
             <div className="sidebar-brand">
-              <div className="brand-mark small">
+              <div className="brand-mark">
                 L15
               </div>
 
-              <div className="sidebar-brand-text">
+              <div>
                 <strong>
                   LARA XV
                 </strong>
@@ -834,10 +1017,10 @@ function Admin() {
             </div>
 
             <div className="sidebar-title">
-              MODERACIÓN
+              RECUERDOS
             </div>
 
-            <nav className="nav">
+            <nav className="desktop-nav">
               {TABS.map(
                 tab => (
                   <button
@@ -847,8 +1030,8 @@ function Admin() {
                     className={
                       activeTab ===
                       tab.id
-                        ? 'nav-item active'
-                        : 'nav-item'
+                        ? 'desktop-nav-item active'
+                        : 'desktop-nav-item'
                     }
                     onClick={() =>
                       setActiveTab(
@@ -856,79 +1039,77 @@ function Admin() {
                       )
                     }
                   >
-                    <span className="nav-icon">
+                    <span className="desktop-nav-icon">
                       {
                         tab.icon
                       }
                     </span>
 
-                    <span className="nav-label">
+                    <span>
                       {
                         tab.label
                       }
                     </span>
 
-                    <span className="nav-count">
+                    <b>
                       {
                         counts[
                           tab.id
                         ]
                       }
-                    </span>
+                    </b>
                   </button>
                 )
               )}
             </nav>
 
             <div className="sidebar-title">
-              INTELIGENCIA ARTIFICIAL
+              GEMINI
             </div>
 
-            <div className="ai-sidebar-stats">
+            <div className="ai-sidebar">
               <div>
                 <span>
                   <i className="dot safe" />
-                  SAFE
+                  Seguros
                 </span>
 
-                <strong>
+                <b>
                   {
                     aiCounts.safe
                   }
-                </strong>
+                </b>
               </div>
 
               <div>
                 <span>
                   <i className="dot review" />
-                  REVIEW
+                  Revisar
                 </span>
 
-                <strong>
+                <b>
                   {
                     aiCounts.review
                   }
-                </strong>
+                </b>
               </div>
 
               <div>
                 <span>
                   <i className="dot blocked" />
-                  BLOCKED
+                  Bloqueados
                 </span>
 
-                <strong>
+                <b>
                   {
                     aiCounts.blocked
                   }
-                </strong>
+                </b>
               </div>
             </div>
           </div>
 
-          <div className="sidebar-bottom">
-            <AltexBrand variant="admin" />
-
+          <div className="sidebar-account">
             <div className="admin-user">
               <div className="avatar">
                 {(user.email ||
@@ -944,44 +1125,88 @@ function Admin() {
 
                 <span>
                   {
-                    user.email ||
-                    ''
+                    user.email
                   }
                 </span>
               </div>
             </div>
 
             <button
-              className="logout-button"
+              className="desktop-logout"
               onClick={
                 handleLogout
               }
             >
-              Cerrar sesión
+              ↪ Cerrar sesión
             </button>
           </div>
         </aside>
 
+        {/* =====================================
+            CONTENIDO
+        ===================================== */}
+
         <main className="admin-main">
-          <header className="topbar">
+
+          {/* ===================================
+              HEADER MÓVIL
+          =================================== */}
+
+          <header className="mobile-header">
+            <div className="mobile-header-title">
+              <span>
+                ADMINISTRACIÓN
+              </span>
+
+              <strong>
+                Lara XV
+              </strong>
+            </div>
+
+            <div className="mobile-header-actions">
+              <button
+                onClick={
+                  loadPosts
+                }
+                disabled={
+                  loadingPosts
+                }
+                aria-label="Actualizar recuerdos"
+              >
+                ↻
+              </button>
+
+              <button
+                className="mobile-logout"
+                onClick={
+                  handleLogout
+                }
+              >
+                Salir ↪
+              </button>
+            </div>
+          </header>
+
+          {/* ===================================
+              HEADER ESCRITORIO
+          =================================== */}
+
+          <header className="desktop-header">
             <div>
-              <div className="eyebrow">
-                CONTROL CENTER
-              </div>
+              <span className="page-kicker">
+                ADMINISTRACIÓN · LARA XV
+              </span>
 
               <h1>
                 {
-                  TABS.find(
-                    tab =>
-                      tab.id ===
-                      activeTab
-                  )?.label
+                  activeTabData
+                    ?.label
                 }
               </h1>
 
               <p>
                 Gestioná los recuerdos
-                del evento en tiempo real.
+                compartidos por los invitados.
               </p>
             </div>
 
@@ -996,10 +1221,63 @@ function Admin() {
             >
               ↻{' '}
               {loadingPosts
-                ? 'Actualizando'
+                ? 'Actualizando...'
                 : 'Actualizar'}
             </button>
           </header>
+
+          {/* ===================================
+              NAVEGACIÓN MÓVIL
+          =================================== */}
+
+          <nav className="mobile-tabs">
+            {TABS.map(
+              tab => (
+                <button
+                  key={
+                    tab.id
+                  }
+                  className={
+                    activeTab ===
+                    tab.id
+                      ? 'mobile-tab active'
+                      : 'mobile-tab'
+                  }
+                  onClick={() =>
+                    setActiveTab(
+                      tab.id
+                    )
+                  }
+                >
+                  <span className="mobile-tab-top">
+                    <span>
+                      {
+                        tab.icon
+                      }
+                    </span>
+
+                    <b>
+                      {
+                        counts[
+                          tab.id
+                        ]
+                      }
+                    </b>
+                  </span>
+
+                  <small>
+                    {
+                      tab.shortLabel
+                    }
+                  </small>
+                </button>
+              )
+            )}
+          </nav>
+
+          {/* ===================================
+              MENSAJES
+          =================================== */}
 
           {error && (
             <div className="alert error">
@@ -1013,7 +1291,11 @@ function Admin() {
             </div>
           )}
 
-          <section className="stats-grid">
+          {/* ===================================
+              RESUMEN ESCRITORIO
+          =================================== */}
+
+          <section className="desktop-stats">
             {TABS.map(
               tab => (
                 <button
@@ -1053,31 +1335,32 @@ function Admin() {
             )}
           </section>
 
-          <section className="ai-summary">
-            <div className="ai-summary-main">
+          <section className="desktop-ai-summary">
+            <div className="ai-summary-title">
               <div className="ai-orb">
                 ✦
               </div>
 
               <div>
                 <strong>
-                  Moderación inteligente
+                  Moderación asistida
                 </strong>
 
                 <p>
-                  IA analizando contenido
-                  automáticamente.
+                  Gemini revisa texto y fotos.
+                  Los videos se revisan
+                  manualmente.
                 </p>
               </div>
             </div>
 
-            <div className="ai-summary-data">
+            <div className="ai-summary-values">
               <span>
                 <b>
                   {
                     aiCounts.safe
                   }
-                </b>{' '}
+                </b>
                 seguros
               </span>
 
@@ -1086,8 +1369,8 @@ function Admin() {
                   {
                     aiCounts.review
                   }
-                </b>{' '}
-                revisión
+                </b>
+                revisar
               </span>
 
               <span>
@@ -1095,41 +1378,44 @@ function Admin() {
                   {
                     aiCounts.blocked
                   }
-                </b>{' '}
+                </b>
                 bloqueados
               </span>
             </div>
           </section>
 
+          {/* ===================================
+              LISTADO
+          =================================== */}
+
           <section className="posts-section">
             <div className="section-heading">
               <div>
-                <h2>
+                <span className="section-icon">
                   {
-                    TABS.find(
-                      tab =>
-                        tab.id ===
-                        activeTab
-                    )?.icon
-                  }{' '}
-                  {
-                    TABS.find(
-                      tab =>
-                        tab.id ===
-                        activeTab
-                    )?.label
+                    activeTabData
+                      ?.icon
                   }
-                </h2>
-
-                <span>
-                  {
-                    currentPosts.length
-                  }{' '}
-                  {currentPosts.length ===
-                  1
-                    ? 'recuerdo'
-                    : 'recuerdos'}
                 </span>
+
+                <div>
+                  <h2>
+                    {
+                      activeTabData
+                        ?.label
+                    }
+                  </h2>
+
+                  <p>
+                    {
+                      currentPosts.length
+                    }{' '}
+                    {currentPosts.length ===
+                    1
+                      ? 'recuerdo'
+                      : 'recuerdos'}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -1138,7 +1424,7 @@ function Admin() {
                 0 && (
               <EmptyState
                 title="Cargando recuerdos"
-                text="Preparando contenido."
+                text="Preparando contenido..."
               />
             )}
 
@@ -1168,6 +1454,11 @@ function Admin() {
                     processingPostId ===
                     post.id;
 
+                  const moderation =
+                    getModerationView(
+                      post
+                    );
+
                   const confidence =
                     typeof post.ai_score ===
                     'number'
@@ -1175,40 +1466,13 @@ function Admin() {
                           post.ai_score *
                             100
                         )}%`
-                      : '—';
+                      : null;
 
                   const autoApproved =
                     post.status ===
                       'approved' &&
                     post.moderation_source ===
                       'ai';
-
-                  const isVideo =
-                    post.file_type?.startsWith('video/');
-
-                  const aiLabel = isVideo
-                    ? 'MANUAL'
-                    : post.ai_status === 'safe'
-                    ? 'SEGURO'
-                    : post.ai_status === 'review'
-                    ? 'REVISAR'
-                    : post.ai_status === 'blocked'
-                    ? 'REVISIÓN'
-                    : post.ai_status === 'error'
-                    ? 'NO DISPONIBLE'
-                    : 'ANALIZANDO';
-
-                  const aiTitle = isVideo
-                    ? '👤 Revisión manual'
-                    : post.ai_status === 'error'
-                    ? '⚠ IA no disponible'
-                    : '✦ Análisis IA';
-
-                  const aiReason = isVideo
-                    ? 'Los videos se revisan manualmente.'
-                    : post.ai_status === 'error'
-                    ? 'El recuerdo quedó pendiente para revisión manual.'
-                    : post.ai_reason;
 
                   return (
                     <article
@@ -1221,6 +1485,8 @@ function Admin() {
                           : 'post-card'
                       }
                     >
+                      {/* CABECERA */}
+
                       <header className="post-card-header">
                         <div className="author">
                           <div className="avatar post">
@@ -1230,11 +1496,10 @@ function Admin() {
                               .toUpperCase()}
                           </div>
 
-                          <div>
+                          <div className="author-data">
                             <strong>
-                              {
-                                post.author_name
-                              }
+                              {post.author_name ||
+                                'Invitado'}
                             </strong>
 
                             <span>
@@ -1251,54 +1516,23 @@ function Admin() {
                           className={`status-pill ${post.status}`}
                         >
                           {
+                            STATUS_LABELS[
+                              post.status
+                            ] ||
                             post.status
                           }
                         </span>
                       </header>
 
-                      <div className={`ai-box ${isVideo ? 'manual-review' : post.ai_status || 'pending'}`}>
-                        <div className="ai-row">
-                          <strong>{aiTitle}</strong>
-
-                          <span
-                            className={`ai-pill ${isVideo ? 'manual' : post.ai_status || 'pending'}`}
-                          >
-                            {aiLabel}
-                          </span>
-                        </div>
-
-                        {!isVideo && typeof post.ai_score === 'number' && (
-                          <div className="ai-details">
-                            <span>Confianza</span>
-                            <strong>{confidence}</strong>
-                          </div>
-                        )}
-
-                        {aiReason && <p>{aiReason}</p>}
-                      </div>
-
-                      {autoApproved && (
-                        <div className="decision ai">
-                          ✦ Aprobado automáticamente
-                          por IA
-                        </div>
-                      )}
-
-                      {post.moderation_source ===
-                        'manual' &&
-                        post.status !==
-                          'pending' && (
-                          <div className="decision manual">
-                            ✓ Decisión manual del administrador
-                          </div>
-                        )}
+                      {/* MULTIMEDIA */}
 
                       {post.storage_path && (
                         <div className="media-box">
                           {
                             renderMedia(
                               post
-                            )}
+                            )
+                          }
 
                           <small>
                             {
@@ -1314,6 +1548,8 @@ function Admin() {
                         </div>
                       )}
 
+                      {/* MENSAJE */}
+
                       {post.message && (
                         <div className="message-box">
                           <span>
@@ -1327,6 +1563,79 @@ function Admin() {
                           </p>
                         </div>
                       )}
+
+                      {/* MODERACIÓN */}
+
+                      <div
+                        className={`moderation-box ${moderation.type}`}
+                      >
+                        <div className="moderation-header">
+                          <div>
+                            <span className="moderation-symbol">
+                              {moderation.type ===
+                              'manual'
+                                ? '👤'
+                                : '✦'}
+                            </span>
+
+                            <strong>
+                              {
+                                moderation.title
+                              }
+                            </strong>
+                          </div>
+
+                          <span
+                            className={`moderation-pill ${moderation.type}`}
+                          >
+                            {
+                              moderation.badge
+                            }
+                          </span>
+                        </div>
+
+                        {moderation.showConfidence &&
+                          confidence && (
+                          <div className="confidence-row">
+                            <span>
+                              Confianza
+                            </span>
+
+                            <strong>
+                              {
+                                confidence
+                              }
+                            </strong>
+                          </div>
+                        )}
+
+                        <p>
+                          {
+                            moderation.text
+                          }
+                        </p>
+                      </div>
+
+                      {/* DECISIÓN */}
+
+                      {autoApproved && (
+                        <div className="decision ai">
+                          ✦ Aprobado automáticamente
+                          por Gemini
+                        </div>
+                      )}
+
+                      {post.moderation_source ===
+                        'manual' &&
+                        post.status !==
+                          'pending' && (
+                          <div className="decision manual">
+                            ✓ Decisión manual del
+                            administrador
+                          </div>
+                        )}
+
+                      {/* ACCIONES */}
 
                       <div className="actions">
                         {post.status ===
@@ -1377,7 +1686,7 @@ function Admin() {
                               )
                             }
                           >
-                            ⌫ Papelera
+                            ⌫ Enviar a papelera
                           </button>
                         )}
 
@@ -1420,18 +1729,37 @@ function Admin() {
               )}
             </div>
           </section>
+
+          {/* ===================================
+              FIRMA ALTEX
+          =================================== */}
+
+          <footer className="admin-footer">
+            <div className="footer-line" />
+
+            <AltexBrand variant="admin" />
+          </footer>
         </main>
       </div>
     </Shell>
   );
 }
 
+/*
+ * ==========================================
+ * COMPONENTES
+ * ==========================================
+ */
+
 function Shell({
   children,
 }) {
   return (
     <>
-      <style>{CSS}</style>
+      <style>
+        {CSS}
+      </style>
+
       {children}
     </>
   );
@@ -1457,6 +1785,12 @@ function EmptyState({
     </div>
   );
 }
+
+/*
+ * ==========================================
+ * ESTILOS
+ * ==========================================
+ */
 
 const CSS = `
   * {
@@ -1492,6 +1826,17 @@ const CSS = `
     -webkit-tap-highlight-color: transparent;
   }
 
+  button:disabled {
+    opacity: .55;
+    cursor: wait;
+  }
+
+  /*
+   * ==========================================
+   * PANEL GENERAL
+   * ==========================================
+   */
+
   .admin-shell {
     min-height: 100vh;
     display: grid;
@@ -1510,6 +1855,12 @@ const CSS = `
       #080b15;
   }
 
+  /*
+   * ==========================================
+   * SIDEBAR ESCRITORIO
+   * ==========================================
+   */
+
   .admin-sidebar {
     position: sticky;
     top: 0;
@@ -1521,39 +1872,26 @@ const CSS = `
     border-right:
       1px solid rgba(255,255,255,.07);
     background:
-      rgba(8,11,21,.78);
+      rgba(8,11,21,.82);
     backdrop-filter:
       blur(24px);
+    z-index: 20;
   }
 
   .sidebar-brand {
     display: flex;
     align-items: center;
-    gap: 11px;
-    padding: 2px 7px;
-  }
-
-  .sidebar-brand-text {
-    display: grid;
-    gap: 3px;
-  }
-
-  .sidebar-brand-text strong {
-    font-size: 12px;
-    letter-spacing: 3px;
-  }
-
-  .sidebar-brand-text span {
-    color: #737b8e;
-    font-size: 11px;
+    gap: 12px;
+    padding: 3px 7px;
   }
 
   .brand-mark {
-    width: 62px;
-    height: 62px;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
     display: grid;
     place-items: center;
-    border-radius: 18px;
+    border-radius: 14px;
     background:
       linear-gradient(
         135deg,
@@ -1561,17 +1899,28 @@ const CSS = `
         #d3a1ba
       );
     color: #0a0d16;
+    font-size: 12px;
     font-weight: 950;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     box-shadow:
-      0 15px 35px rgba(213,169,118,.12);
+      0 15px 35px
+      rgba(213,169,118,.12);
   }
 
-  .brand-mark.small {
-    width: 44px;
-    height: 44px;
-    border-radius: 13px;
+  .sidebar-brand > div:last-child {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+  }
+
+  .sidebar-brand strong {
     font-size: 12px;
+    letter-spacing: 2.5px;
+  }
+
+  .sidebar-brand span {
+    color: #7f8798;
+    font-size: 11px;
   }
 
   .sidebar-title {
@@ -1579,38 +1928,43 @@ const CSS = `
     color: #60687b;
     font-size: 9px;
     font-weight: 900;
-    letter-spacing: 2.5px;
+    letter-spacing: 2.3px;
   }
 
-  .nav {
+  .desktop-nav {
     display: grid;
     gap: 5px;
   }
 
-  .nav-item {
+  .desktop-nav-item {
     width: 100%;
+    min-height: 45px;
     display: grid;
-    grid-template-columns: 27px 1fr auto;
+    grid-template-columns:
+      28px 1fr auto;
     align-items: center;
     gap: 7px;
-    padding: 11px;
-    border: 1px solid transparent;
+    padding: 10px 11px;
+    border:
+      1px solid transparent;
     border-radius: 12px;
     background: transparent;
-    color: #858da0;
+    color: #8d95a7;
     text-align: left;
     cursor: pointer;
+    transition:
+      .2s ease;
   }
 
-  .nav-item:hover {
+  .desktop-nav-item:hover {
     background:
       rgba(255,255,255,.035);
-    color: #ddd9d2;
+    color: #fff;
   }
 
-  .nav-item.active {
+  .desktop-nav-item.active {
     border-color:
-      rgba(238,202,139,.13);
+      rgba(238,202,139,.15);
     background:
       linear-gradient(
         90deg,
@@ -1620,670 +1974,887 @@ const CSS = `
     color: #fff;
   }
 
-  .nav-icon {
+  .desktop-nav-icon {
     text-align: center;
     font-size: 16px;
   }
 
-  .nav-label {
+  .desktop-nav-item > span:nth-child(2) {
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 750;
   }
 
-  .nav-count {
-    min-width: 25px;
-    padding: 4px 6px;
+  .desktop-nav-item b {
+    min-width: 27px;
+    padding: 4px 7px;
     border-radius: 8px;
     background:
-      rgba(255,255,255,.05);
+      rgba(255,255,255,.055);
     text-align: center;
     font-size: 11px;
-    font-weight: 800;
   }
 
-  .ai-sidebar-stats {
+  .ai-sidebar {
     display: grid;
-    gap: 9px;
+    gap: 10px;
     padding: 6px 10px;
   }
 
-  .ai-sidebar-stats > div {
+  .ai-sidebar > div {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    color: #858da0;
+    justify-content:
+      space-between;
+    color: #8991a2;
     font-size: 11px;
   }
 
-  .ai-sidebar-stats span {
+  .ai-sidebar span {
     display: flex;
     align-items: center;
+    gap: 8px;
+  }
+
+  .ai-sidebar b {
+    color: #d6d8df;
   }
 
   .dot {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     display: inline-block;
-    margin-right: 7px;
     border-radius: 50%;
   }
 
-  .dot.safe { background: #76d5a0; }
-  .dot.review { background: #e7bb6e; }
-  .dot.blocked { background: #df7987; }
+  .dot.safe {
+    background: #6fcea1;
+  }
 
-  .sidebar-bottom {
+  .dot.review {
+    background: #e9c36f;
+  }
+
+  .dot.blocked {
+    background: #e67d8d;
+  }
+
+  .sidebar-account {
     display: grid;
-    gap: 11px;
+    gap: 12px;
+    padding: 14px 7px 4px;
+    border-top:
+      1px solid rgba(255,255,255,.06);
   }
 
   .admin-user {
+    min-width: 0;
     display: flex;
     align-items: center;
-    gap: 9px;
-    padding: 10px;
-    border:
-      1px solid rgba(255,255,255,.06);
-    border-radius: 13px;
+    gap: 10px;
+  }
+
+  .avatar {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
     background:
-      rgba(255,255,255,.025);
+      rgba(255,255,255,.07);
+    color: #efd094;
+    font-weight: 900;
   }
 
   .admin-user > div:last-child {
     min-width: 0;
     display: grid;
-    gap: 2px;
+    gap: 3px;
   }
 
   .admin-user strong {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .admin-user span {
+    max-width: 175px;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: #70788b;
+    color: #747d8f;
     font-size: 10px;
+    text-overflow:
+      ellipsis;
+    white-space: nowrap;
   }
 
-  .avatar {
-    width: 33px;
-    height: 33px;
-    flex: 0 0 auto;
-    display: grid;
-    place-items: center;
-    border-radius: 10px;
-    background:
-      linear-gradient(
-        135deg,
-        #d5a6bc,
-        #e8ca91
-      );
-    color: #0a0d16;
-    font-weight: 900;
-  }
-
-  .avatar.post {
-    width: 36px;
-    height: 36px;
-    border-radius: 11px;
-  }
-
-  .logout-button,
-  .refresh-button {
+  .desktop-logout {
+    min-height: 42px;
     border:
       1px solid rgba(255,255,255,.08);
     border-radius: 11px;
     background:
       rgba(255,255,255,.035);
-    color: #b4bac6;
+    color: #b6bdc9;
+    font-size: 12px;
+    font-weight: 750;
     cursor: pointer;
   }
 
-  .logout-button {
-    width: 100%;
-    padding: 10px;
-    font-size: 12px;
-    font-weight: 700;
+  .desktop-logout:hover {
+    border-color:
+      rgba(232,116,135,.25);
+    color: #f0a0ad;
   }
+
+  /*
+   * ==========================================
+   * MAIN
+   * ==========================================
+   */
 
   .admin-main {
+    width: 100%;
     min-width: 0;
-    padding: 34px clamp(18px, 4vw, 48px) 70px;
+    max-width: 1600px;
+    padding:
+      42px 38px 60px;
+    margin: 0 auto;
   }
 
-  .topbar {
+  .mobile-header,
+  .mobile-tabs {
+    display: none;
+  }
+
+  .desktop-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 20px;
-    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content:
+      space-between;
+    gap: 25px;
+    margin-bottom: 28px;
   }
 
-  .eyebrow {
-    color: #c2a76f;
-    font-size: 9px;
-    font-weight: 900;
-    letter-spacing: 3px;
+  .page-kicker {
+    display: block;
+    margin-bottom: 9px;
+    color: #cda5b8;
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 2.3px;
   }
 
-  .topbar h1 {
-    margin: 8px 0 5px;
-    color: #fff;
-    font-size: clamp(30px, 4vw, 45px);
+  .desktop-header h1 {
+    margin: 0;
+    font-size:
+      clamp(30px, 4vw, 46px);
     line-height: 1;
     letter-spacing: -1.5px;
   }
 
-  .topbar p {
-    margin: 0;
-    color: #80899b;
+  .desktop-header p {
+    margin: 10px 0 0;
+    color: #81899b;
     font-size: 13px;
   }
 
   .refresh-button {
-    padding: 11px 14px;
+    min-height: 44px;
+    padding: 0 17px;
+    border:
+      1px solid rgba(255,255,255,.09);
+    border-radius: 12px;
+    background:
+      rgba(255,255,255,.04);
+    color: #ddd9d2;
+    font-weight: 750;
+    cursor: pointer;
   }
 
+  /*
+   * ==========================================
+   * ALERTAS
+   * ==========================================
+   */
+
   .alert {
-    margin-top: 20px;
+    margin-bottom: 18px;
     padding: 13px 15px;
     border-radius: 12px;
     font-size: 13px;
+    line-height: 1.5;
   }
 
   .alert.error {
     border:
-      1px solid rgba(225,119,134,.15);
+      1px solid rgba(235,108,126,.2);
     background:
-      rgba(225,119,134,.08);
-    color: #ffadb7;
+      rgba(235,108,126,.08);
+    color: #f1a0ad;
   }
 
   .alert.success {
     border:
-      1px solid rgba(119,214,161,.14);
+      1px solid rgba(101,205,154,.18);
     background:
-      rgba(119,214,161,.065);
-    color: #9de6ba;
+      rgba(101,205,154,.07);
+    color: #90dfb8;
   }
 
-  .stats-grid {
-    margin-top: 28px;
+  /*
+   * ==========================================
+   * ESTADÍSTICAS ESCRITORIO
+   * ==========================================
+   */
+
+  .desktop-stats {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0,1fr));
+    grid-template-columns:
+      repeat(4, 1fr);
     gap: 12px;
+    margin-bottom: 16px;
   }
 
   .stat-card {
     min-width: 0;
-    min-height: 92px;
+    display: flex;
+    align-items: center;
+    justify-content:
+      space-between;
+    gap: 12px;
     padding: 16px;
-    display: grid;
-    align-content: space-between;
-    text-align: left;
     border:
-      1px solid rgba(255,255,255,.06);
-    border-radius: 17px;
+      1px solid rgba(255,255,255,.065);
+    border-radius: 15px;
     background:
-      linear-gradient(
-        145deg,
-        rgba(255,255,255,.055),
-        rgba(255,255,255,.018)
-      );
-    color: #8c94a7;
+      rgba(255,255,255,.025);
+    color: #8c94a6;
+    text-align: left;
     cursor: pointer;
   }
 
   .stat-card.active {
     border-color:
-      rgba(235,201,140,.20);
-    color: #e9e4dc;
-    background:
-      linear-gradient(
-        145deg,
-        rgba(235,201,140,.09),
-        rgba(211,161,186,.04)
-      );
-  }
-
-  .stat-card span {
-    font-size: 11px;
-    font-weight: 800;
-  }
-
-  .stat-card strong {
-    color: #fff;
-    font-size: 30px;
-  }
-
-  .ai-summary {
-    margin-top: 12px;
-    padding: 16px 18px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-    border:
-      1px solid rgba(211,161,186,.09);
-    border-radius: 17px;
+      rgba(238,202,139,.22);
     background:
       linear-gradient(
         135deg,
-        rgba(211,161,186,.08),
-        rgba(235,201,140,.045)
+        rgba(238,202,139,.09),
+        rgba(211,161,186,.05)
       );
+    color: #fff;
   }
 
-  .ai-summary-main {
+  .stat-card span {
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 750;
+    text-overflow:
+      ellipsis;
+    white-space: nowrap;
+  }
+
+  .stat-card strong {
+    color: #f0d299;
+    font-size: 24px;
+  }
+
+  .desktop-ai-summary {
+    display: flex;
+    align-items: center;
+    justify-content:
+      space-between;
+    gap: 25px;
+    margin-bottom: 32px;
+    padding: 16px 18px;
+    border:
+      1px solid rgba(255,255,255,.06);
+    border-radius: 16px;
+    background:
+      rgba(255,255,255,.025);
+  }
+
+  .ai-summary-title {
     display: flex;
     align-items: center;
     gap: 12px;
   }
 
   .ai-orb {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
     display: grid;
     place-items: center;
-    border-radius: 13px;
+    border-radius: 12px;
     background:
       linear-gradient(
         135deg,
-        #d4a5bb,
-        #e8ca90
+        rgba(239,208,148,.16),
+        rgba(211,161,186,.12)
       );
-    color: #0b0e17;
-    font-weight: 900;
+    color: #efd094;
   }
 
-  .ai-summary strong {
-    color: #eee9e2;
+  .ai-summary-title strong {
     font-size: 13px;
   }
 
-  .ai-summary p {
-    margin: 3px 0 0;
-    color: #858d9f;
+  .ai-summary-title p {
+    margin: 4px 0 0;
+    color: #747d8e;
     font-size: 11px;
   }
 
-  .ai-summary-data {
+  .ai-summary-values {
     display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-    color: #868ea1;
-    font-size: 11px;
+    gap: 22px;
   }
 
-  .ai-summary-data b {
-    color: #e8e3db;
+  .ai-summary-values span {
+    display: grid;
+    gap: 2px;
+    color: #737c8d;
+    font-size: 10px;
+    text-align: center;
   }
+
+  .ai-summary-values b {
+    color: #e4e5e8;
+    font-size: 17px;
+  }
+
+  /*
+   * ==========================================
+   * SECCIÓN RECUERDOS
+   * ==========================================
+   */
 
   .posts-section {
-    margin-top: 30px;
+    min-width: 0;
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: center;
+    justify-content:
+      space-between;
+    margin-bottom: 16px;
+  }
+
+  .section-heading > div {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .section-icon {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border:
+      1px solid rgba(255,255,255,.07);
+    border-radius: 11px;
+    background:
+      rgba(255,255,255,.025);
   }
 
   .section-heading h2 {
     margin: 0;
-    font-size: 21px;
-    color: #fff;
+    font-size: 19px;
   }
 
-  .section-heading span {
-    display: block;
-    margin-top: 4px;
-    color: #70798c;
-    font-size: 12px;
+  .section-heading p {
+    margin: 3px 0 0;
+    color: #727b8d;
+    font-size: 11px;
   }
 
   .posts-grid {
-    margin-top: 17px;
     display: grid;
     grid-template-columns:
-      repeat(auto-fit, minmax(350px, 1fr));
-    gap: 17px;
+      repeat(
+        auto-fit,
+        minmax(340px, 1fr)
+      );
+    gap: 18px;
+    align-items: start;
   }
+
+  /*
+   * ==========================================
+   * TARJETA
+   * ==========================================
+   */
 
   .post-card {
+    min-width: 0;
     overflow: hidden;
     border:
-      1px solid rgba(255,255,255,.06);
-    border-radius: 21px;
+      1px solid rgba(255,255,255,.07);
+    border-radius: 19px;
     background:
       linear-gradient(
-        145deg,
-        rgba(255,255,255,.05),
-        rgba(255,255,255,.018)
+        180deg,
+        rgba(20,24,37,.96),
+        rgba(12,15,25,.96)
       );
     box-shadow:
-      0 16px 55px rgba(0,0,0,.16);
+      0 18px 45px
+      rgba(0,0,0,.18);
     transition:
       transform .2s ease,
-      border-color .2s ease;
-  }
-
-  .post-card:hover {
-    transform: translateY(-2px);
-    border-color:
-      rgba(255,255,255,.10);
+      opacity .2s ease;
   }
 
   .post-card.processing {
-    opacity: .58;
+    opacity: .55;
+    pointer-events: none;
   }
 
   .post-card-header {
-    padding: 17px 17px 0;
     display: flex;
-    justify-content: space-between;
-    gap: 10px;
     align-items: center;
+    justify-content:
+      space-between;
+    gap: 12px;
+    padding: 15px 16px;
   }
 
   .author {
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 10px;
   }
 
-  .author > div:last-child {
+  .avatar.post {
+    width: 39px;
+    height: 39px;
+    flex-basis: 39px;
+    border-radius: 50%;
+    background:
+      linear-gradient(
+        135deg,
+        rgba(239,208,148,.14),
+        rgba(211,161,186,.13)
+      );
+  }
+
+  .author-data {
     min-width: 0;
     display: grid;
     gap: 3px;
   }
 
-  .author strong {
-    color: #f3efe8;
+  .author-data strong {
+    max-width: 190px;
+    overflow: hidden;
     font-size: 13px;
+    text-overflow:
+      ellipsis;
+    white-space: nowrap;
   }
 
-  .author span {
-    color: #727b8f;
+  .author-data span {
+    color: #737c8d;
     font-size: 10px;
   }
 
-  .status-pill,
-  .ai-pill {
-    padding: 6px 8px;
+  .status-pill {
+    flex: 0 0 auto;
+    padding: 5px 8px;
     border-radius: 999px;
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 900;
-    letter-spacing: 1px;
+    letter-spacing: .8px;
   }
 
   .status-pill.pending {
-    background: rgba(231,187,110,.10);
-    color: #e5c17d;
+    background:
+      rgba(230,188,95,.09);
+    color: #e6c06e;
   }
 
   .status-pill.approved {
-    background: rgba(118,213,160,.09);
-    color: #9de3b7;
+    background:
+      rgba(98,205,153,.09);
+    color: #75d8a8;
   }
 
   .status-pill.rejected {
-    background: rgba(225,119,134,.09);
-    color: #efa2ab;
+    background:
+      rgba(231,111,130,.09);
+    color: #eb8998;
   }
 
   .status-pill.trashed {
-    background: rgba(255,255,255,.05);
-    color: #a5acb9;
-  }
-
-  .ai-box {
-    margin: 15px 17px 0;
-    padding: 12px;
-    border:
-      1px solid rgba(255,255,255,.05);
-    border-radius: 14px;
-    background: rgba(4,7,14,.30);
-  }
-
-  .ai-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .ai-row strong {
-    color: #d4d0ca;
-    font-size: 11px;
-  }
-
-  .ai-pill.safe {
-    background: rgba(118,213,160,.09);
-    color: #9de3b7;
-  }
-
-  .ai-pill.review {
-    background: rgba(231,187,110,.09);
-    color: #e3bf7a;
-  }
-
-  .ai-pill.blocked,
-  .ai-pill.error {
-    background: rgba(225,119,134,.09);
-    color: #efa2ab;
-  }
-
-  .ai-pill.pending {
-    background: rgba(255,255,255,.05);
-    color: #9ba2af;
-  }
-
-  .ai-pill.manual {
-    background: rgba(232,200,138,.09);
-    color: #e6c77f;
-  }
-
-  .ai-box.manual-review {
-    border-color: rgba(232,200,138,.10);
-    background: rgba(232,200,138,.035);
-  }
-
-  .ai-details {
-    margin-top: 9px;
-    display: flex;
-    gap: 8px;
-    color: #656e80;
-    font-size: 10px;
-  }
-
-  .ai-details strong {
-    color: #e7e1d9;
-  }
-
-  .ai-box p {
-    margin: 7px 0 0;
-    color: #959cac;
-    line-height: 1.5;
-    font-size: 10px;
-  }
-
-  .decision {
-    margin: 11px 17px 0;
-    padding: 8px 10px;
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: 800;
-  }
-
-  .decision.ai {
-    border:
-      1px solid rgba(118,213,160,.12);
     background:
-      rgba(118,213,160,.07);
-    color: #9de4b8;
+      rgba(150,157,173,.09);
+    color: #a3a9b6;
   }
 
-  .decision.manual {
-    border:
-      1px solid rgba(255,255,255,.06);
-    background:
-      rgba(255,255,255,.03);
-    color: #bfc4cd;
-  }
+  /*
+   * ==========================================
+   * MULTIMEDIA
+   * ==========================================
+   */
 
   .media-box {
-    margin-top: 14px;
-    padding: 0 17px;
+    padding: 0 13px 13px;
   }
 
   .admin-media {
     width: 100%;
-    aspect-ratio: 16/11;
+    max-height: 480px;
     display: block;
     object-fit: cover;
-    border-radius: 15px;
-    background: #04070d;
-    border:
-      1px solid rgba(255,255,255,.05);
+    border-radius: 14px;
+    background: #03050a;
+  }
+
+  .admin-media.video {
+    object-fit: contain;
   }
 
   .media-box small {
     display: block;
-    margin-top: 6px;
-    color: #626b7d;
+    margin-top: 7px;
+    color: #626b7c;
     font-size: 9px;
   }
 
+  /*
+   * ==========================================
+   * MENSAJE
+   * ==========================================
+   */
+
   .message-box {
-    margin: 14px 17px 0;
-    padding: 12px;
+    margin: 0 13px 13px;
+    padding: 13px 14px;
     border:
-      1px solid rgba(255,255,255,.05);
+      1px solid rgba(255,255,255,.055);
     border-radius: 13px;
-    background: rgba(255,255,255,.022);
+    background:
+      rgba(255,255,255,.025);
   }
 
-  .message-box span {
-    color: #6a7386;
+  .message-box > span {
+    color: #9b7e8d;
     font-size: 8px;
     font-weight: 900;
-    letter-spacing: 2px;
+    letter-spacing: 1.5px;
   }
 
   .message-box p {
     margin: 7px 0 0;
-    color: #d2d5db;
-    white-space: pre-wrap;
+    color: #e3e1dd;
+    font-size: 13px;
     line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  /*
+   * ==========================================
+   * MODERACIÓN
+   * ==========================================
+   */
+
+  .moderation-box {
+    margin: 0 13px 13px;
+    padding: 12px 13px;
+    border:
+      1px solid rgba(255,255,255,.055);
+    border-radius: 13px;
+    background:
+      rgba(255,255,255,.02);
+  }
+
+  .moderation-box.safe {
+    border-color:
+      rgba(101,205,154,.13);
+    background:
+      rgba(101,205,154,.035);
+  }
+
+  .moderation-box.review {
+    border-color:
+      rgba(230,188,95,.15);
+    background:
+      rgba(230,188,95,.035);
+  }
+
+  .moderation-box.blocked {
+    border-color:
+      rgba(232,113,132,.15);
+    background:
+      rgba(232,113,132,.035);
+  }
+
+  .moderation-box.manual {
+    border-color:
+      rgba(155,164,183,.12);
+    background:
+      rgba(155,164,183,.035);
+  }
+
+  .moderation-header {
+    display: flex;
+    align-items: center;
+    justify-content:
+      space-between;
+    gap: 10px;
+  }
+
+  .moderation-header > div {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .moderation-header strong {
     font-size: 11px;
   }
+
+  .moderation-symbol {
+    color: #efd094;
+    font-size: 12px;
+  }
+
+  .moderation-pill {
+    padding: 4px 7px;
+    border-radius: 999px;
+    font-size: 7px;
+    font-weight: 950;
+    letter-spacing: .8px;
+  }
+
+  .moderation-pill.safe {
+    background:
+      rgba(101,205,154,.10);
+    color: #7ddcaf;
+  }
+
+  .moderation-pill.review {
+    background:
+      rgba(230,188,95,.10);
+    color: #e8c46f;
+  }
+
+  .moderation-pill.blocked {
+    background:
+      rgba(232,113,132,.10);
+    color: #ec8b9a;
+  }
+
+  .moderation-pill.manual {
+    background:
+      rgba(160,169,188,.10);
+    color: #b2b9c7;
+  }
+
+  .moderation-pill.pending {
+    background:
+      rgba(211,161,186,.10);
+    color: #dcaec4;
+  }
+
+  .moderation-box p {
+    margin: 8px 0 0;
+    color: #858e9f;
+    font-size: 10px;
+    line-height: 1.45;
+  }
+
+  .confidence-row {
+    display: flex;
+    justify-content:
+      space-between;
+    margin-top: 9px;
+    color: #7c8597;
+    font-size: 9px;
+  }
+
+  .confidence-row strong {
+    color: #d5d7dd;
+  }
+
+  /*
+   * ==========================================
+   * DECISIONES
+   * ==========================================
+   */
+
+  .decision {
+    margin: 0 13px 13px;
+    padding: 9px 11px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 750;
+  }
+
+  .decision.ai {
+    background:
+      rgba(101,205,154,.06);
+    color: #7bd9ab;
+  }
+
+  .decision.manual {
+    background:
+      rgba(151,161,181,.06);
+    color: #aab1bf;
+  }
+
+  /*
+   * ==========================================
+   * BOTONES
+   * ==========================================
+   */
 
   .actions {
     display: grid;
     grid-template-columns:
-      repeat(auto-fit, minmax(110px,1fr));
+      repeat(2, minmax(0,1fr));
     gap: 8px;
-    padding: 15px 17px 17px;
+    padding: 0 13px 14px;
   }
 
   .actions button {
-    padding: 10px 9px;
-    border-radius: 10px;
-    cursor: pointer;
+    min-height: 44px;
+    border-radius: 11px;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 850;
+    cursor: pointer;
   }
 
   .approve {
-    border: 1px solid rgba(118,213,160,.15);
-    background: rgba(118,213,160,.08);
-    color: #9de2b6;
+    border:
+      1px solid rgba(101,205,154,.18);
+    background:
+      rgba(101,205,154,.09);
+    color: #7ee0b1;
   }
 
   .reject {
-    border: 1px solid rgba(225,119,134,.15);
-    background: rgba(225,119,134,.07);
-    color: #efa1ab;
+    border:
+      1px solid rgba(232,113,132,.18);
+    background:
+      rgba(232,113,132,.08);
+    color: #ef929f;
   }
 
   .trash {
-    border: 1px solid rgba(255,255,255,.07);
-    background: rgba(255,255,255,.03);
-    color: #a9afbb;
+    grid-column: 1 / -1;
+    border:
+      1px solid rgba(255,255,255,.065);
+    background:
+      rgba(255,255,255,.025);
+    color: #858d9d;
   }
 
   .restore {
-    border: 1px solid rgba(232,200,138,.15);
-    background: rgba(232,200,138,.07);
-    color: #e6c77f;
+    border:
+      1px solid rgba(101,174,222,.18);
+    background:
+      rgba(101,174,222,.08);
+    color: #8ac5eb;
   }
 
   .delete {
-    border: 1px solid rgba(225,119,134,.15);
-    background: rgba(225,119,134,.07);
-    color: #efa1ab;
+    border:
+      1px solid rgba(232,113,132,.2);
+    background:
+      rgba(232,113,132,.09);
+    color: #ef929f;
   }
 
-  .empty-state,
-  .center-state {
-    min-height: 280px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+  /*
+   * ==========================================
+   * ESTADO VACÍO
+   * ==========================================
+   */
+
+  .empty-state {
+    padding: 60px 20px;
+    border:
+      1px dashed rgba(255,255,255,.08);
+    border-radius: 18px;
+    color: #7b8496;
     text-align: center;
   }
 
-  .empty-state {
-    margin-top: 17px;
-    padding: 35px;
-    border:
-      1px dashed rgba(255,255,255,.08);
-    border-radius: 21px;
-    background:
-      rgba(255,255,255,.018);
-  }
-
   .empty-icon {
-    width: 58px;
-    height: 58px;
-    display: grid;
-    place-items: center;
-    border-radius: 18px;
-    background:
-      rgba(232,200,138,.07);
-    color: #d8b97b;
+    margin-bottom: 12px;
+    color: #d8b5c6;
+    font-size: 24px;
   }
 
   .empty-state h3 {
-    margin: 17px 0 6px;
-    font-size: 18px;
+    margin: 0;
+    color: #d9d8d5;
+    font-size: 16px;
   }
 
   .empty-state p {
-    max-width: 430px;
-    margin: 0;
-    color: #727b8f;
-    font-size: 12px;
-    line-height: 1.6;
+    margin: 7px 0 0;
+    font-size: 11px;
   }
 
-  .auth-page {
+  /*
+   * ==========================================
+   * FOOTER ALTEX
+   * ==========================================
+   */
+
+  .admin-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 70px;
+    padding:
+      20px 0 10px;
+  }
+
+  .footer-line {
+    width: min(320px, 70%);
+    height: 1px;
+    margin-bottom: 28px;
+    background:
+      linear-gradient(
+        90deg,
+        transparent,
+        rgba(239,208,148,.18),
+        rgba(211,161,186,.18),
+        transparent
+      );
+  }
+
+  /*
+   * ==========================================
+   * LOGIN
+   * ==========================================
+   */
+
+  .auth-page,
+  .center-state {
     min-height: 100vh;
+    min-height: 100dvh;
+    position: relative;
     display: grid;
     place-items: center;
-    position: relative;
     overflow: hidden;
     padding: 24px;
     background:
       radial-gradient(
-        circle at 80% 20%,
+        circle at 50% 0%,
         rgba(211,161,186,.12),
-        transparent 28%
+        transparent 35%
       ),
       radial-gradient(
-        circle at 20% 80%,
-        rgba(232,202,144,.08),
-        transparent 25%
+        circle at 20% 100%,
+        rgba(239,208,148,.07),
+        transparent 30%
       ),
       #080b15;
   }
@@ -2291,295 +2862,695 @@ const CSS = `
   .auth-card {
     position: relative;
     z-index: 2;
-    width: 100%;
-    max-width: 460px;
-    padding: 40px;
+    width: min(430px,100%);
+    padding: 36px;
     border:
-      1px solid rgba(255,255,255,.08);
-    border-radius: 26px;
+      1px solid rgba(255,255,255,.075);
+    border-radius: 24px;
     background:
-      rgba(255,255,255,.045);
+      rgba(15,18,29,.82);
     box-shadow:
-      0 28px 90px rgba(0,0,0,.42);
+      0 35px 100px
+      rgba(0,0,0,.35);
     backdrop-filter:
       blur(24px);
+    text-align: center;
+  }
+
+  .auth-crown {
+    color: #e2bdcf;
+    font-size: 25px;
+  }
+
+  .auth-name {
+    margin-top: 4px;
+    font-family:
+      Georgia,
+      serif;
+    font-size: 34px;
+    letter-spacing: 8px;
+  }
+
+  .auth-xv {
+    margin-top: 2px;
+    color: #e8c988;
+    font-family:
+      Georgia,
+      serif;
+    font-size: 16px;
+    letter-spacing: 6px;
+  }
+
+  .auth-decoration {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    margin: 15px 0 20px;
+    color: #cda5b8;
+    font-size: 8px;
+  }
+
+  .auth-decoration span {
+    width: 45px;
+    height: 1px;
+    background:
+      rgba(239,208,148,.22);
   }
 
   .auth-card h1 {
-    margin: 12px 0;
-    max-width: 370px;
-    color: #fff;
-    font-size: 34px;
-    line-height: 1.07;
+    margin: 0;
+    font-size: 25px;
   }
 
   .auth-description {
-    margin: 0;
-    color: #929aab;
-    line-height: 1.65;
-    font-size: 13px;
+    margin: 8px 0 25px;
+    color: #858d9e;
+    font-size: 12px;
+    line-height: 1.55;
   }
 
   .auth-form {
-    margin-top: 26px;
     display: grid;
-    gap: 16px;
+    gap: 15px;
+    text-align: left;
   }
 
   .auth-form label {
     display: grid;
-    gap: 8px;
-    color: #e8e4dd;
-    font-size: 13px;
-    font-weight: 700;
+    gap: 7px;
+    color: #b6bbc5;
+    font-size: 11px;
+    font-weight: 750;
   }
 
   .auth-form input {
     width: 100%;
-    padding: 13px 14px;
-    border:
-      1px solid rgba(255,255,255,.10);
-    border-radius: 12px;
+    min-height: 48px;
+    padding: 0 14px;
     outline: none;
+    border:
+      1px solid rgba(255,255,255,.075);
+    border-radius: 12px;
     background:
-      rgba(255,255,255,.045);
+      rgba(255,255,255,.035);
     color: #fff;
   }
 
+  .auth-form input:focus {
+    border-color:
+      rgba(239,208,148,.35);
+  }
+
   .primary-button {
-    margin-top: 4px;
-    padding: 14px 18px;
+    min-height: 49px;
+    margin-top: 3px;
     border: none;
     border-radius: 12px;
     background:
       linear-gradient(
         135deg,
-        #eed092,
-        #d4a2bb
+        #efd094,
+        #d4a4bb
       );
-    color: #0b0e17;
+    color: #0a0d16;
     font-weight: 900;
     cursor: pointer;
   }
 
   .secure-text {
-    margin-top: 18px;
-    text-align: center;
-    color: #6f7789;
-    font-size: 11px;
+    margin-top: 20px;
+    color: #657083;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .secure-text::first-letter {
+    color: #68c996;
   }
 
   .auth-orb {
     position: absolute;
     border-radius: 50%;
-    filter: blur(80px);
+    filter: blur(5px);
+    pointer-events: none;
   }
 
   .orb-one {
-    width: 420px;
-    height: 420px;
-    right: -120px;
-    top: -170px;
-    background: rgba(214,165,189,.12);
+    width: 260px;
+    height: 260px;
+    top: -120px;
+    right: -80px;
+    background:
+      rgba(211,161,186,.07);
   }
 
   .orb-two {
-    width: 360px;
-    height: 360px;
-    left: -160px;
-    bottom: -160px;
-    background: rgba(232,201,142,.08);
+    width: 220px;
+    height: 220px;
+    bottom: -100px;
+    left: -80px;
+    background:
+      rgba(239,208,148,.05);
   }
 
-  @media (max-width: 1050px) {
+  /*
+   * ==========================================
+   * CARGANDO
+   * ==========================================
+   */
+
+  .center-state {
+    align-content: center;
+    color: #838c9e;
+    text-align: center;
+  }
+
+  .center-state > div {
+    margin: 0 auto;
+  }
+
+  .loading-symbol {
+    color: #e0b9cb;
+    font-size: 27px;
+  }
+
+  .center-state h1 {
+    margin:
+      10px 0 5px;
+    color: #f2efe9;
+    font-family:
+      Georgia,
+      serif;
+    letter-spacing: 3px;
+  }
+
+  .center-state p {
+    margin: 0;
+    font-size: 11px;
+  }
+
+  /*
+   * ==========================================
+   * TABLET
+   * ==========================================
+   */
+
+  @media (
+    max-width: 1050px
+  ) {
     .admin-shell {
-      grid-template-columns: 88px minmax(0,1fr);
-    }
-
-    .sidebar-brand-text,
-    .sidebar-title,
-    .nav-label,
-    .ai-sidebar-stats,
-    .admin-user,
-    .logout-button,
-    .admin-sidebar .guest-develop,
-    .admin-sidebar .admin-wrapper {
-      display: none !important;
-    }
-
-    .admin-sidebar {
-      padding: 18px 10px;
-    }
-
-    .sidebar-brand {
-      justify-content: center;
-    }
-
-    .nav-item {
-      grid-template-columns: 1fr;
-      justify-items: center;
-      padding: 11px 7px;
-    }
-
-    .nav-count {
-      min-width: 24px;
-    }
-
-    .stats-grid {
       grid-template-columns:
-        repeat(2, minmax(0,1fr));
-    }
-  }
-
-  @media (max-width: 720px) {
-    .admin-shell {
-      display: block;
-    }
-
-    .admin-sidebar {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      width: 100%;
-      height: auto;
-      min-height: auto;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 10px;
-      border-right: none;
-      border-bottom:
-        1px solid rgba(255,255,255,.07);
-    }
-
-    .sidebar-brand-text {
-      display: none !important;
-    }
-
-    .nav {
-      display: flex;
-      gap: 5px;
-      overflow-x: auto;
-      flex: 1;
-    }
-
-    .nav-item {
-      flex: 0 0 auto;
-      width: auto;
-      display: flex;
-      grid-template-columns: none;
-      padding: 8px 10px;
-    }
-
-    .nav-label {
-      display: none !important;
-    }
-
-    .nav-count {
-      min-width: 22px;
-    }
-
-    .sidebar-bottom {
-      display: flex;
-      align-items: center;
-    }
-
-    .admin-sidebar .admin-wrapper {
-      display: grid !important;
-      padding: 0;
-    }
-
-    .admin-sidebar .admin-logo {
-      width: 58px;
-      max-height: 28px;
-    }
-
-    .admin-sidebar .admin-text,
-    .admin-sidebar .admin-link {
-      display: none;
+        220px minmax(0,1fr);
     }
 
     .admin-main {
-      padding: 22px 14px 45px;
+      padding:
+        32px 22px 50px;
     }
 
-    .stats-grid {
+    .desktop-stats {
       grid-template-columns:
-        repeat(2, minmax(0,1fr));
+        repeat(2,1fr);
     }
+
+    .desktop-ai-summary {
+      align-items:
+        flex-start;
+      flex-direction:
+        column;
+    }
+
+    .ai-summary-values {
+      width: 100%;
+      justify-content:
+        space-around;
+    }
+  }
+
+  /*
+   * ==========================================
+   * MÓVIL
+   * ==========================================
+   */
+
+  @media (
+    max-width: 720px
+  ) {
+    html {
+      background: #080b15;
+    }
+
+    body {
+      overflow-x: hidden;
+    }
+
+    .admin-shell {
+      display: block;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    /*
+     * SIDEBAR DESAPARECE
+     */
+
+    .admin-sidebar {
+      display: none;
+    }
+
+    /*
+     * MAIN
+     */
+
+    .admin-main {
+      width: 100%;
+      max-width: none;
+      padding:
+        0
+        12px
+        calc(
+          35px +
+          env(
+            safe-area-inset-bottom
+          )
+        );
+    }
+
+    /*
+     * HEADER MÓVIL
+     */
+
+    .mobile-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content:
+        space-between;
+      gap: 12px;
+      margin:
+        0 -12px;
+      padding:
+        calc(
+          13px +
+          env(
+            safe-area-inset-top
+          )
+        )
+        14px
+        12px;
+      border-bottom:
+        1px solid
+        rgba(255,255,255,.065);
+      background:
+        rgba(8,11,21,.94);
+      backdrop-filter:
+        blur(20px);
+    }
+
+    .mobile-header-title {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .mobile-header-title span {
+      color: #b78da1;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+    }
+
+    .mobile-header-title strong {
+      font-family:
+        Georgia,
+        serif;
+      font-size: 20px;
+      letter-spacing: .5px;
+    }
+
+    .mobile-header-actions {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .mobile-header-actions button {
+      min-height: 40px;
+      border:
+        1px solid
+        rgba(255,255,255,.075);
+      border-radius: 11px;
+      background:
+        rgba(255,255,255,.035);
+      color: #d7d7da;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .mobile-header-actions button:first-child {
+      width: 40px;
+      padding: 0;
+      font-size: 19px;
+    }
+
+    .mobile-header-actions .mobile-logout {
+      padding: 0 12px;
+      color: #e6a4ae;
+      font-size: 11px;
+    }
+
+    /*
+     * HEADER DESKTOP OCULTO
+     */
+
+    .desktop-header,
+    .desktop-stats,
+    .desktop-ai-summary {
+      display: none;
+    }
+
+    /*
+     * TABS MÓVILES
+     */
+
+    .mobile-tabs {
+      display: grid;
+      grid-template-columns:
+        repeat(4, minmax(0,1fr));
+      gap: 5px;
+      margin:
+        12px 0 20px;
+      padding: 5px;
+      border:
+        1px solid
+        rgba(255,255,255,.055);
+      border-radius: 15px;
+      background:
+        rgba(255,255,255,.02);
+    }
+
+    .mobile-tab {
+      min-width: 0;
+      min-height: 58px;
+      display: grid;
+      align-content: center;
+      gap: 4px;
+      padding: 6px 3px;
+      border:
+        1px solid transparent;
+      border-radius: 11px;
+      background:
+        transparent;
+      color: #7f8899;
+      cursor: pointer;
+    }
+
+    .mobile-tab.active {
+      border-color:
+        rgba(239,208,148,.13);
+      background:
+        linear-gradient(
+          135deg,
+          rgba(239,208,148,.10),
+          rgba(211,161,186,.06)
+        );
+      color: #fff;
+    }
+
+    .mobile-tab-top {
+      display: flex;
+      align-items: center;
+      justify-content:
+        center;
+      gap: 5px;
+      font-size: 12px;
+    }
+
+    .mobile-tab-top b {
+      color: #efd094;
+      font-size: 12px;
+    }
+
+    .mobile-tab small {
+      overflow: hidden;
+      font-size: 8px;
+      font-weight: 750;
+      text-overflow:
+        ellipsis;
+      white-space: nowrap;
+    }
+
+    /*
+     * ALERTAS
+     */
+
+    .alert {
+      margin:
+        0 0 14px;
+      font-size: 11px;
+    }
+
+    /*
+     * CABECERA SECCIÓN
+     */
+
+    .section-heading {
+      margin-bottom: 12px;
+      padding: 0 2px;
+    }
+
+    .section-icon {
+      width: 35px;
+      height: 35px;
+    }
+
+    .section-heading h2 {
+      font-size: 18px;
+    }
+
+    .section-heading p {
+      font-size: 10px;
+    }
+
+    /*
+     * TARJETAS
+     */
 
     .posts-grid {
-      grid-template-columns: 1fr;
+      display: grid;
+      grid-template-columns:
+        minmax(0,1fr);
+      gap: 16px;
+    }
+
+    .post-card {
+      width: 100%;
+      border-radius: 17px;
+    }
+
+    .post-card-header {
+      padding: 13px;
+    }
+
+    .author-data strong {
+      max-width: 175px;
+    }
+
+    /*
+     * MULTIMEDIA PRIMERO Y GRANDE
+     */
+
+    .media-box {
+      padding:
+        0 10px 11px;
+    }
+
+    .admin-media {
+      width: 100%;
+      max-height: 70vh;
+      border-radius: 13px;
+    }
+
+    .media-box small {
+      display: none;
+    }
+
+    /*
+     * MENSAJE
+     */
+
+    .message-box {
+      margin:
+        0 10px 10px;
+      padding:
+        13px 14px;
+    }
+
+    .message-box p {
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    /*
+     * MODERACIÓN
+     */
+
+    .moderation-box {
+      margin:
+        0 10px 10px;
+      padding: 12px;
+    }
+
+    .moderation-header strong {
+      font-size: 11px;
+    }
+
+    .moderation-box p {
+      font-size: 10px;
+    }
+
+    .decision {
+      margin:
+        0 10px 10px;
+    }
+
+    /*
+     * ACCIONES GRANDES
+     */
+
+    .actions {
+      gap: 8px;
+      padding:
+        2px 10px 12px;
+    }
+
+    .actions button {
+      min-height: 50px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    .trash {
+      min-height: 44px !important;
+      margin-top: 1px;
+    }
+
+    /*
+     * FOOTER
+     */
+
+    .admin-footer {
+      margin-top: 55px;
+      padding-bottom:
+        env(
+          safe-area-inset-bottom
+        );
+    }
+
+    .footer-line {
+      margin-bottom: 25px;
+    }
+
+    /*
+     * ALTEX
+     */
+
+    .admin-footer .guest-develop,
+    .admin-footer .admin-wrapper {
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /*
+     * LOGIN
+     */
+
+    .auth-page {
+      padding:
+        calc(
+          18px +
+          env(
+            safe-area-inset-top
+          )
+        )
+        15px
+        calc(
+          18px +
+          env(
+            safe-area-inset-bottom
+          )
+        );
     }
 
     .auth-card {
-      padding: 28px 22px;
+      padding:
+        29px 20px;
+      border-radius: 20px;
+    }
+
+    .auth-name {
+      font-size: 30px;
     }
 
     .auth-card h1 {
-      font-size: 29px;
+      font-size: 23px;
     }
   }
 
-  /* Mobile-first moderation UX */
-  @media (max-width: 720px) {
-    body { overflow-x: hidden; }
-    .admin-shell { min-height: 100dvh; padding-bottom: env(safe-area-inset-bottom); }
-    .admin-sidebar { padding: calc(8px + env(safe-area-inset-top)) 10px 8px; background: rgba(8,11,21,.94); backdrop-filter: blur(20px); }
-    .sidebar-brand { padding: 0; }
-    .brand-mark.small { width: 38px; height: 38px; border-radius: 11px; font-size: 10px; }
-    .nav { scrollbar-width: none; }
-    .nav::-webkit-scrollbar { display: none; }
-    .nav-item { min-height: 42px; gap: 5px; border-radius: 11px; }
-    .nav-icon { font-size: 15px; }
-    .nav-count { padding: 3px 5px; font-size: 10px; }
-    .admin-main { padding: 18px 12px calc(40px + env(safe-area-inset-bottom)); }
-    .topbar { align-items: center; gap: 10px; }
-    .topbar h1 { margin: 5px 0 3px; font-size: 28px; letter-spacing: -1px; }
-    .topbar p { display: none; }
-    .refresh-button { min-width: 44px; min-height: 44px; padding: 10px 12px; }
-    .stats-grid { margin-top: 18px; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; }
-    .stat-card { min-height: 72px; padding: 10px 7px; border-radius: 13px; text-align: center; justify-items: center; }
-    .stat-card span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
-    .stat-card strong { font-size: 23px; }
-    .ai-summary { padding: 12px; gap: 10px; }
-    .ai-orb { width: 36px; height: 36px; border-radius: 11px; }
-    .ai-summary-data { width: 100%; justify-content: space-between; gap: 8px; }
-    .posts-section { margin-top: 22px; }
-    .section-heading h2 { font-size: 19px; }
-    .posts-grid { margin-top: 12px; gap: 14px; grid-template-columns: 1fr; }
-    .post-card { border-radius: 18px; }
-    .post-card:hover { transform: none; }
-    .post-card-header { padding: 14px 14px 0; align-items: flex-start; }
-    .avatar.post { width: 38px; height: 38px; }
-    .author strong { font-size: 14px; }
-    .author span { font-size: 10px; }
-    .status-pill, .ai-pill { flex: 0 0 auto; padding: 6px 8px; font-size: 8px; }
-    .media-box { margin-top: 13px; padding: 0 14px; }
-    .admin-media { max-height: 62vh; aspect-ratio: auto; min-height: 220px; object-fit: contain; border-radius: 14px; }
-    .message-box { margin: 12px 14px 0; padding: 12px; }
-    .message-box p { font-size: 13px; line-height: 1.5; }
-    .ai-box { margin: 12px 14px 0; padding: 11px 12px; }
-    .ai-row strong { font-size: 12px; }
-    .ai-box p { font-size: 11px; }
-    .decision { margin: 10px 14px 0; }
-    .actions { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; padding: 14px; }
-    .actions button { min-height: 48px; padding: 12px 8px; border-radius: 12px; font-size: 12px; touch-action: manipulation; }
-    .actions .trash { grid-column: 1 / -1; min-height: 42px; }
-    .empty-state { min-height: 220px; padding: 28px 18px; }
-    .auth-page { min-height: 100dvh; padding: calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom)); }
-    .auth-card { padding: 28px 20px; border-radius: 22px; }
-    .auth-card h1 { font-size: 29px; }
-    .auth-form input, .primary-button { min-height: 48px; font-size: 16px; }
-  }
+  /*
+   * ==========================================
+   * CELULARES CHICOS
+   * ==========================================
+   */
 
-  @media (max-width: 390px) {
-    .admin-main { padding-left: 10px; padding-right: 10px; }
-    .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-    .stat-card { min-height: 68px; }
-  }
+  @media (
+    max-width: 390px
+  ) {
+    .admin-main {
+      padding-left: 9px;
+      padding-right: 9px;
+    }
 
+    .mobile-header {
+      margin:
+        0 -9px;
+      padding-left: 11px;
+      padding-right: 11px;
+    }
+
+    .mobile-header-title strong {
+      font-size: 18px;
+    }
+
+    .mobile-header-actions .mobile-logout {
+      padding: 0 9px;
+    }
+
+    .mobile-tabs {
+      gap: 3px;
+    }
+
+    .mobile-tab {
+      padding-left: 2px;
+      padding-right: 2px;
+    }
+
+    .mobile-tab small {
+      font-size: 7.5px;
+    }
+
+    .status-pill {
+      font-size: 7px;
+    }
+
+    .author-data strong {
+      max-width: 145px;
+    }
+  }
 `;
 
 export default Admin;
