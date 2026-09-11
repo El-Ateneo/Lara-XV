@@ -452,29 +452,24 @@
    ========================================================= */
 
 .gift-footer {
-  width: fit-content;
-  max-width: calc(100% - 24px);
-
-  margin: 18px auto 0;
-  padding: 12px 18px;
-
+  padding: 12px 0 2px;
   text-align: center;
 
-  background: rgba(255, 250, 247, 0.78);
-  border: 1px solid rgba(180, 138, 73, 0.28);
-  border-radius: 18px;
-
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-
-  box-shadow: 0 8px 22px rgba(70, 45, 50, 0.10);
-
-  color: #2f2527;
-  font-size: 14px;
+  color: #3a252b;
+  font-size: 15px;
   font-weight: 700;
+  }
+
+.gift-footer a {
+  color: #7a3048;
+  font-weight: 800;
+  text-decoration: none;
 }
 
-
+.gift-footer a:hover {
+  color: #541e30;
+  text-decoration: underline;
+}
 /* =========================================================
    MARIPOSAS
    ========================================================= */
