@@ -452,9 +452,26 @@
    ========================================================= */
 
 .gift-footer {
-  padding: 15px 0 2px;
+  width: fit-content;
+  max-width: calc(100% - 24px);
+
+  margin: 18px auto 0;
+  padding: 12px 18px;
 
   text-align: center;
+
+  background: rgba(255, 250, 247, 0.78);
+  border: 1px solid rgba(180, 138, 73, 0.28);
+  border-radius: 18px;
+
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  box-shadow: 0 8px 22px rgba(70, 45, 50, 0.10);
+
+  color: #2f2527;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 
