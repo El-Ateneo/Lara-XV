@@ -16,14 +16,11 @@
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
+  filter: none;
+  transform: none;
 }
 .gift-overlay {
-  background:linear-gradient(
-      180deg,
-      rgba(255, 250, 244, 0.55),
-      rgba(255, 248, 243, 0.72) 45%,
-      rgba(246, 235, 229, 0.82)
-    );
+  background:rgba(0, 0, 0, 0.05);
   backdrop-filter:blur(2px);
 }
 .gift-container {
