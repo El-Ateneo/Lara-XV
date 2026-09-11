@@ -13,13 +13,17 @@
 }
 .gift-photo,.gift-overlay {position:fixed;inset:0;pointer-events:none;}
 .gift-photo {
-  background-position:center 20%;
-  background-size:cover;
-  filter:saturate(.82) contrast(.95);
-  transform:scale(1.03);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 .gift-overlay {
-  background:linear-gradient(180deg,rgba(255,250,244,.82),rgba(255,248,243,.94) 45%,rgba(246,235,229,.97));
+  background:linear-gradient(
+      180deg,
+      rgba(255, 250, 244, 0.55),
+      rgba(255, 248, 243, 0.72) 45%,
+      rgba(246, 235, 229, 0.82)
+    );
   backdrop-filter:blur(2px);
 }
 .gift-container {

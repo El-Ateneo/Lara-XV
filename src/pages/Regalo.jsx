@@ -51,7 +51,7 @@ export default function Regalo() {
           <p className="gift-kicker">UN DETALLE PARA MÍ</p>
           <h1>Tu presencia es mi mejor regalo</h1>
           <p className="gift-intro">
-            Lo más importante para mí es poder compartir esta noche con vos.
+            Lo más importante para mí es poder compartir este momento con vos.
             <br />
             Si además deseás hacerme un regalo, podés hacerlo a través de estos datos.
           </p>
