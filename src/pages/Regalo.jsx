@@ -9,7 +9,7 @@ const DATA = {
   titular: 'Hortensia Barja',
   cuit: '27-31066688-8',
   cbu: '2850100640094072127198',
-  alias: 'barja-hortencia',
+  alias: 'lara-frias-mis-xv',
   cuenta: 'CA ARS 410009407212719',
   entidad: 'Banco Macro S.A.',
   concepto: '15 Lara',
