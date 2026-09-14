@@ -74,9 +74,10 @@
 }
 
 .gift-crown {
-  font-size: 30px;
+  font-size: 40px;
   line-height: 1;
   color: var(--gold);
+  margin-bottom: 18px;
 }
 
 .gift-name {
@@ -91,11 +92,11 @@
 }
 
 .gift-xv {
-  margin-top: -5px;
+  margin-top: 16px;
   padding-left: .45em;
 
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 21px;
+  font-size: 25px;
   letter-spacing: .45em;
 
   color: var(--gold);
@@ -111,13 +112,17 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
 
-  gap: 12px;
+  gap: 15px;
 
   width: min(84%, 320px);
   margin: 18px auto;
 
   color: var(--gold);
   font-size: 10px;
+}
+.gift-footer .gift-rule {
+  font-size: 17px;
+  letter-spacing: 4px;
 }
 
 .gift-rule span {
@@ -421,6 +426,137 @@
   line-height: 1.55;
 }
 
+/* =========================================================
+   OPCIÓN DE REGALO - ROPA
+   ========================================================= */
+
+.gift-clothing {
+  position: relative;
+
+  margin-top: 34px;
+  padding: 38px 24px 24px;
+
+  border: 1px solid rgba(180, 138, 73, .35);
+  border-radius: 24px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 252, 248, .91),
+      rgba(248, 235, 238, .88)
+    );
+
+  box-shadow:
+    0 18px 45px rgba(91, 58, 64, .11);
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  text-align: center;
+}
+
+.gift-clothing-icon {
+  position: absolute;
+
+  top: -24px;
+  left: 50%;
+
+  width: 48px;
+  height: 48px;
+
+  display: grid;
+  place-items: center;
+
+  transform: translateX(-50%);
+
+  border: 1px solid rgba(180, 138, 73, .45);
+  border-radius: 50%;
+
+  background: #fffaf6;
+
+  font-size: 22px;
+
+  box-shadow:
+    0 8px 20px rgba(116, 75, 82, .12);
+}
+
+.gift-clothing-kicker {
+  margin: 0 0 8px;
+
+  color: var(--gold);
+
+  font-size: 10px;
+  font-weight: 900;
+
+  letter-spacing: .20em;
+}
+
+.gift-clothing h2 {
+  margin: 0;
+
+  font-family: Georgia, 'Times New Roman', serif;
+
+  font-size: clamp(23px, 5vw, 30px);
+  font-weight: 500;
+
+  color: var(--rose-dark);
+}
+
+.gift-clothing-intro {
+  margin: 10px auto 20px;
+
+  color: var(--muted);
+
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.gift-clothing-sizes {
+  overflow: hidden;
+
+  border: 1px solid rgba(180, 138, 73, .20);
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, .55);
+}
+
+.gift-size-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+
+  gap: 18px;
+
+  padding: 14px 16px;
+
+  border-bottom:
+    1px solid rgba(180, 138, 73, .15);
+
+  text-align: left;
+}
+
+.gift-size-row:last-child {
+  border-bottom: 0;
+}
+
+.gift-size-row span {
+  color: var(--muted);
+}
+
+.gift-size-row strong {
+  color: var(--rose-dark);
+
+  font-size: 15px;
+}
+
+.gift-clothing-note {
+  margin: 14px 0 0;
+
+  color: var(--muted);
+
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.5;
+}
 
 /* =========================================================
    MENSAJES
@@ -452,11 +588,11 @@
    ========================================================= */
 
 .gift-footer {
-  padding: 12px 0 2px;
+  padding: 2px 0 2px;
   text-align: center;
 
   color: #3a252b;
-  font-size: 15px;
+  font-size: 30px;
   font-weight: 700;
   }
 
@@ -532,6 +668,19 @@
         calc(100% - 18px),
         680px
       );
+  }
+  .gift-clothing {
+    padding-left: 14px;
+    padding-right: 14px;
+
+    border-radius: 22px;
+  }
+
+  .gift-size-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+
+    text-align: center;
   }
 
   .gift-card {

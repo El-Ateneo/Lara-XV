@@ -84,10 +84,10 @@ export default function Regalo() {
           </div>
 
           <div className="gift-concept">
-            <small>CONCEPTO SUGERIDO</small>
+            <small>REFERENCIA O MOTIVO</small>
             <strong>{DATA.concepto}</strong>
             <p>
-              Si tu banco permite agregar un concepto o referencia,
+              Si tu banco permite agregar una referencia motivo o,
               podés escribir “15 Lara”.
             </p>
           </div>
@@ -99,12 +99,42 @@ export default function Regalo() {
           )}
         </section>
 
+        <section className="gift-clothing">
+          <div className="gift-clothing-icon">👗</div>
+
+          <p className="gift-clothing-kicker">OTRA OPCIÓN DE REGALO</p>
+
+          <h2>Si preferís regalarme ropa</h2>
+
+          <p className="gift-clothing-intro">
+            Podés tener en cuenta estas referencias de talle:
+          </p>
+
+          <div className="gift-clothing-sizes">
+            <div className="gift-size-row">
+              <span>Remeras e indumentaria</span>
+              <strong>Talle M</strong>
+            </div>
+
+            <div className="gift-size-row">
+              <span>Pantalones</span>
+              <strong>Talle 38–40</strong>
+            </div>
+          </div>
+
+          <p className="gift-clothing-note">
+            Los talles son orientativos y pueden variar según la confección
+            de cada prenda.
+          </p>
+        </section>
+
+
         <p className="gift-thanks">
           Gracias por acompañarme en un momento tan especial ✨
         </p>
 
         <footer className="gift-footer">
-          <div className="gift-rule"><span />♕<span /></div>
+          <div className="gift-rule"><span />♕ ♕ ♕<span /></div>
           <AltexBrand variant="guest" />
         </footer>
       </main>
