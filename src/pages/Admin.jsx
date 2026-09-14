@@ -16,6 +16,7 @@ import {
 } from '../lib/posts';
 
 import AltexBrand from '../components/AltexBrand';
+import GuestControl from '../components/admin/GuestControl';
 import './Admin.css';
 
 const EVENT_ID =
@@ -88,6 +89,9 @@ function Admin() {
 
   const [activeTab, setActiveTab] =
     useState('pending');
+
+  const [adminSection, setAdminSection] =
+    useState('recuerdos');
 
   const [
     processingPostId,
@@ -1189,6 +1193,43 @@ function Admin() {
           </header>
 
           {/* ===================================
+              SECCIONES DEL PANEL
+          =================================== */}
+
+          <nav className="admin-section-switcher">
+            <button
+              type="button"
+              className={
+                adminSection === 'recuerdos'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                setAdminSection('recuerdos')
+              }
+            >
+              📸 Recuerdos
+            </button>
+
+            <button
+              type="button"
+              className={
+                adminSection === 'ingreso'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                setAdminSection('ingreso')
+              }
+            >
+              🎟️ Control de ingreso
+            </button>
+          </nav>
+
+          {adminSection === 'recuerdos' ? (
+            <>
+
+          {/* ===================================
               HEADER ESCRITORIO
           =================================== */}
 
@@ -1729,6 +1770,11 @@ function Admin() {
               )}
             </div>
           </section>
+
+            </>
+          ) : (
+            <GuestControl />
+          )}
 
           {/* ===================================
               FIRMA ALTEX

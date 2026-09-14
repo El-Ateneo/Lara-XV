@@ -1784,3 +1784,51 @@
       max-width: 145px;
     }
   }
+.admin-section-switcher {
+  display: flex;
+  gap: 8px;
+  padding: 22px 38px 0;
+}
+
+.admin-section-switcher button {
+  min-height: 42px;
+  padding: 0 17px;
+  border: 1px solid #292f3e;
+  border-radius: 11px;
+  background: #111520;
+  color: #8f96a8;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+.admin-section-switcher button:hover {
+  border-color: #4d4850;
+  color: #d8dae1;
+}
+
+.admin-section-switcher button.active {
+  border-color:
+    rgba(190, 158, 96, 0.45);
+  background:
+    rgba(190, 158, 96, 0.11);
+  color: #ddc489;
+}
+
+@media (max-width: 900px) {
+  .admin-section-switcher {
+    padding:
+      16px 18px 0;
+    overflow-x: auto;
+  }
+
+  .admin-section-switcher button {
+    flex: 1;
+    white-space: nowrap;
+  }
+}
