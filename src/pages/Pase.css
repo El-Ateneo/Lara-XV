@@ -1,0 +1,756 @@
+.pass-page {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding:
+    34px 18px
+    28px;
+  background:
+    radial-gradient(
+      circle at top,
+      #fff8f3 0%,
+      #f7e8df 32%,
+      #efe0d8 65%,
+      #e8dad3 100%
+    );
+  color: #27231f;
+}
+
+.pass-glow {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(30px);
+}
+
+.pass-glow-one {
+  width: 260px;
+  height: 260px;
+  top: -70px;
+  right: -90px;
+  background:
+    rgba(210, 169, 102, 0.18);
+}
+
+.pass-glow-two {
+  width: 230px;
+  height: 230px;
+  bottom: -60px;
+  left: -90px;
+  background:
+    rgba(200, 151, 157, 0.14);
+}
+
+.pass-card {
+  position: relative;
+  z-index: 1;
+  width: min(
+    100%,
+    470px
+  );
+  margin: 0 auto;
+  overflow: hidden;
+  border:
+    1px solid
+    rgba(167, 128, 80, 0.28);
+  border-radius: 30px;
+  background:
+    rgba(
+      255,
+      252,
+      248,
+      0.9
+    );
+  box-shadow:
+    0 25px 70px
+      rgba(
+        93,
+        69,
+        55,
+        0.16
+      );
+  backdrop-filter:
+    blur(18px);
+}
+
+.pass-header {
+  padding:
+    30px 26px
+    23px;
+  text-align: center;
+  background:
+    linear-gradient(
+      145deg,
+      #232720,
+      #141712
+    );
+  color: #f3dfb2;
+}
+
+.pass-crown {
+  font-size: 27px;
+  color: #d8b46c;
+}
+
+.pass-lara {
+  margin-top: 4px;
+  font-family:
+    Georgia,
+    'Times New Roman',
+    serif;
+  font-size: 39px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+}
+
+.pass-xv {
+  margin-top: 5px;
+  color: #dec17d;
+  font-family:
+    Georgia,
+    'Times New Roman',
+    serif;
+  font-size: 19px;
+  letter-spacing: 0.28em;
+}
+
+.pass-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 230px;
+  margin: 18px auto 0;
+  color: #b99758;
+  font-size: 9px;
+  letter-spacing: 4px;
+}
+
+.pass-rule span {
+  flex: 1;
+  height: 1px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      #b99758
+    );
+}
+
+.pass-rule span:last-child {
+  background:
+    linear-gradient(
+      90deg,
+      #b99758,
+      transparent
+    );
+}
+
+.pass-kicker {
+  margin:
+    14px 0 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: #c9ae73;
+}
+
+.pass-guest {
+  padding:
+    28px 25px
+    8px;
+  text-align: center;
+}
+
+.pass-label {
+  color: #9c7a50;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.pass-guest h1 {
+  margin:
+    9px 0 7px;
+  color: #2d2824;
+  font-family:
+    Georgia,
+    'Times New Roman',
+    serif;
+  font-size:
+    clamp(
+      26px,
+      8vw,
+      36px
+    );
+  line-height: 1.1;
+}
+
+.pass-guest p {
+  max-width: 330px;
+  margin:
+    0 auto;
+  color: #756c64;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.pass-table {
+  width:
+    calc(
+      100% - 50px
+    );
+  margin:
+    18px auto 0;
+  padding:
+    16px;
+  border:
+    1px solid
+    rgba(
+      171,
+      132,
+      78,
+      0.25
+    );
+  border-radius: 15px;
+  text-align: center;
+  background:
+    rgba(
+      214,
+      181,
+      122,
+      0.08
+    );
+}
+
+.pass-table span,
+.pass-table strong {
+  display: block;
+}
+
+.pass-table span {
+  color: #9b805f;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.pass-table strong {
+  margin-top: 4px;
+  color: #9e743c;
+  font-size: 29px;
+}
+
+.pass-qr-section {
+  padding:
+    25px 25px
+    20px;
+  text-align: center;
+}
+
+.pass-qr-frame {
+  display: inline-flex;
+  padding: 15px;
+  border-radius: 19px;
+  background: #ffffff;
+  box-shadow:
+    0 10px 30px
+      rgba(
+        83,
+        64,
+        49,
+        0.1
+      );
+}
+
+.pass-qr-frame svg {
+  display: block;
+  width: 230px;
+  max-width: 100%;
+  height: auto;
+}
+
+.pass-scan-text {
+  margin:
+    16px 0 0;
+  color: #655d56;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pass-id {
+  display: inline-block;
+  margin-top: 9px;
+  padding:
+    7px 12px;
+  border-radius: 999px;
+  background:
+    rgba(
+      70,
+      61,
+      53,
+      0.07
+    );
+  color: #66594e;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.pass-note {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin:
+    0 24px
+    25px;
+  padding:
+    14px 16px;
+  border-radius: 14px;
+  background:
+    rgba(
+      193,
+      151,
+      89,
+      0.08
+    );
+}
+
+.pass-note span {
+  color: #bc9151;
+}
+
+.pass-note p {
+  margin: 0;
+  color: #6e655d;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.pass-footer {
+  position: relative;
+  z-index: 1;
+  max-width: 470px;
+  margin:
+    20px auto 0;
+}
+
+/* LOADING */
+
+.pass-loading {
+  min-height:
+    calc(
+      100dvh - 70px
+    );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #75685e;
+  text-align: center;
+}
+
+.pass-loading .pass-crown {
+  font-size: 38px;
+}
+
+.pass-loading p {
+  margin-top: 12px;
+}
+
+/* ERROR */
+
+.pass-error-card {
+  width:
+    min(
+      100%,
+      410px
+    );
+  margin:
+    15vh auto 0;
+  padding:
+    38px 28px;
+  border:
+    1px solid
+    rgba(
+      173,
+      95,
+      95,
+      0.24
+    );
+  border-radius: 25px;
+  background:
+    rgba(
+      255,
+      250,
+      247,
+      0.92
+    );
+  text-align: center;
+  box-shadow:
+    0 20px 60px
+      rgba(
+        91,
+        63,
+        55,
+        0.12
+      );
+}
+
+.pass-error-icon {
+  width: 55px;
+  height: 55px;
+  display: grid;
+  place-items: center;
+  margin:
+    0 auto 17px;
+  border-radius: 50%;
+  background:
+    rgba(
+      185,
+      80,
+      80,
+      0.1
+    );
+  color: #b05252;
+  font-size: 31px;
+}
+
+.pass-error-card h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.pass-error-card p {
+  margin:
+    10px 0 0;
+  color: #776a63;
+  line-height: 1.5;
+}
+
+/* MÓVIL */
+
+@media (
+  max-width: 520px
+) {
+  .pass-page {
+    padding:
+      18px 12px
+      24px;
+  }
+
+  .pass-card {
+    border-radius: 23px;
+  }
+
+  .pass-header {
+    padding:
+      26px 20px
+      21px;
+  }
+
+  .pass-lara {
+    font-size: 34px;
+  }
+
+  .pass-guest {
+    padding:
+      25px 18px
+      6px;
+  }
+
+  .pass-table {
+    width:
+      calc(
+        100% - 36px
+      );
+  }
+
+  .pass-qr-section {
+    padding:
+      23px 18px
+      18px;
+  }
+
+  .pass-qr-frame {
+    padding: 13px;
+  }
+
+  .pass-note {
+    margin:
+      0 18px
+      20px;
+  }
+}
+/* =========================================
+   BOTÓN DESCARGAR QR
+   ========================================= */
+
+.pass-download-button {
+  width: min(100%, 260px);
+  min-height: 50px;
+  margin: 20px auto 0;
+  padding: 13px 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  border: 1px solid #b99758;
+  border-radius: 999px;
+
+  /*
+   * Verde oscuro elegante.
+   * Mantiene excelente contraste
+   * con el texto claro.
+   */
+  background:
+    linear-gradient(
+      135deg,
+      #18241f 0%,
+      #22322b 55%,
+      #18241f 100%
+    );
+
+  color: #fffaf1;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+
+  letter-spacing: 0.055em;
+
+  text-align: center;
+  text-decoration: none;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 8px 22px rgba(20, 29, 25, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+
+/* =========================================
+   HOVER
+   ========================================= */
+
+.pass-download-button:hover {
+  transform: translateY(-2px);
+
+  background:
+    linear-gradient(
+      135deg,
+      #22322b 0%,
+      #30453a 55%,
+      #22322b 100%
+    );
+
+  border-color: #c9a968;
+
+  color: #ffffff;
+
+  box-shadow:
+    0 12px 28px rgba(20, 29, 25, 0.24),
+    0 0 0 2px rgba(185, 151, 88, 0.08);
+}
+
+
+/* =========================================
+   AL PRESIONAR
+   ========================================= */
+
+.pass-download-button:active {
+  transform: translateY(0);
+
+  box-shadow:
+    0 5px 14px rgba(20, 29, 25, 0.2);
+}
+
+
+/* =========================================
+   FOCO — ACCESIBILIDAD
+   ========================================= */
+
+.pass-download-button:focus-visible {
+  outline: 3px solid rgba(185, 151, 88, 0.42);
+  outline-offset: 3px;
+}
+
+
+/* =========================================
+   BOTÓN DESHABILITADO
+   ========================================= */
+
+.pass-download-button:disabled {
+  background: #59635e;
+
+  border-color: #8e927f;
+
+  color: #ffffff;
+
+  opacity: 0.8;
+
+  cursor: wait;
+
+  transform: none;
+
+  box-shadow: none;
+}
+
+
+/* =========================================
+   TEXTO DEBAJO DEL BOTÓN
+   ========================================= */
+
+.pass-download-note {
+  max-width: 290px;
+
+  margin: 10px auto 0;
+
+  /*
+   * Más oscuro que el anterior #786c60
+   * para mejorar la lectura.
+   */
+  color: #51483f;
+
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+
+  text-align: center;
+}
+
+
+/* =========================================
+   TEXTO GENERAL DEL PASE
+   ========================================= */
+
+.pass-note {
+  color: #3f3933;
+
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+
+/* =========================================
+   IDENTIFICADOR DEL INVITADO
+   ========================================= */
+
+.pass-id {
+  color: #292d2a;
+
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+}
+
+
+/* =========================================
+   ETIQUETA "MESA"
+   ========================================= */
+
+.pass-label {
+  color: #625337;
+
+  font-weight: 800;
+
+  letter-spacing: 0.14em;
+}
+
+
+/* =========================================
+   NÚMERO DE MESA
+   ========================================= */
+
+.pass-table-number {
+  color: #17211d;
+
+  font-weight: 800;
+
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+
+/* =========================================
+   "PASE PERSONAL"
+   ========================================= */
+
+.pass-kicker {
+  color: #695733;
+
+  font-weight: 800;
+
+  letter-spacing: 0.16em;
+}
+
+
+/* =========================================
+   NOMBRE DEL INVITADO
+   ========================================= */
+
+.pass-hero h1 {
+  color: #18211d;
+
+  font-weight: 700;
+
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+
+/* =========================================
+   QR
+   ========================================= */
+
+.pass-qr {
+  background: #ffffff;
+
+  border: 1px solid rgba(91, 72, 43, 0.2);
+
+  box-shadow:
+    0 10px 30px rgba(40, 34, 27, 0.12);
+}
+
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+
+@media (max-width: 560px) {
+
+  .pass-download-button {
+    width: min(100%, 240px);
+
+    min-height: 48px;
+
+    padding: 12px 20px;
+
+    font-size: 13px;
+  }
+
+  .pass-download-note {
+    max-width: 250px;
+
+    font-size: 12px;
+  }
+
+  .pass-note {
+    font-size: 13px;
+  }
+}

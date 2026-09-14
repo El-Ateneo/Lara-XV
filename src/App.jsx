@@ -3,6 +3,7 @@ import Regalo from './pages/Regalo';
 import Guest from './pages/Guest';
 import Admin from './pages/Admin';
 import Display from './pages/Display';
+import Pase from './pages/Pase';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="/admin" element={<Admin />} />
         <Route path="/display" element={<Display />} />
         <Route path="/regalo" element={<Regalo />} />
+        <Route path="/pase/:id" element={<Pase />} />
 
         <Route
           path="*"

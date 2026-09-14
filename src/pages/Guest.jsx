@@ -2495,36 +2495,25 @@ const handleFileChange =
             ✦
           </span>
 
+         
+         
         </div>
-
+        <p>
+          Gracias por ser parte de este momento tan especial ✨
+        </p>
 
         {/* =====================================
             FOOTER
         ===================================== */}
 
         <footer className="guest-footer">
-
-
-          <div className="footer-line">
-
+          <div className="guest-footer-crowns">
             <span />
-
-            ♕
-
+            ♕ ♕ ♕
             <span />
-
           </div>
 
-
-          <p>
-            Gracias por ser parte de este momento tan especial ✨
-          </p>
-
-
-          <AltexBrand
-            variant="guest"
-          />
-
+          <AltexBrand variant="guest" />
         </footer>
 
 
