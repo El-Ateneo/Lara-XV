@@ -87,8 +87,10 @@ export default function Regalo() {
             <small>REFERENCIA O MOTIVO</small>
             <strong>{DATA.concepto}</strong>
             <p>
-              Si tu banco permite agregar una referencia motivo o,
-              podés escribir “15 Lara”.
+              Si tu banco permite agregar una referencia motivo
+            </p>
+            <p>
+              podés escribir “15 Lara”
             </p>
           </div>
 
