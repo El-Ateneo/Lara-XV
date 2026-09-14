@@ -27,3 +27,13 @@ android/app/google-services.json
 *.key
 service-account*.json
 firebase-service-account*.json
+# Firebase Android
+android/app/google-services.json
+
+# Secretos
+.env
+.env.*
+*.pem
+*.key
+service-account*.json
+firebase-service-account*.json
