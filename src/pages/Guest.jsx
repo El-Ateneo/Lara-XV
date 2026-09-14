@@ -1378,32 +1378,32 @@ const handleFileChange =
         */
         try {
           const {
-            error:
-              notificationError,
-          } =
-            await supabase
-              .functions
-              .invoke(
-                'notificar-recuerdo'
-              );
+            data: notificationData,
+            error: notificationError,
+          } = await supabase.functions.invoke(
+            'notificar-recuerdo'
+          );
 
-          if (
-            notificationError
-          ) {
-            console.error(
-              'Error notificando recuerdo:',
-              notificationError
-            );
-          }
-        } catch (
-          notificationError
-        ) {
-          console.error(
-            'Error notificando recuerdo:',
+          console.log(
+            'NOTIFICAR_RECUERDO_DATA:',
+            notificationData
+          );
+
+          console.log(
+            'NOTIFICAR_RECUERDO_ERROR:',
             notificationError
           );
+
+        } catch (notificationError) {
+
+          console.error(
+            'NOTIFICAR_RECUERDO_EXCEPTION:',
+            notificationError
+          );
+
         }
 
+                
 
         /* =====================================
            ÉXITO
