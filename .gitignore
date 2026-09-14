@@ -17,3 +17,13 @@ yarn-error.log*
 pnpm-debug.log*
 
 *.local
+# Firebase Android
+android/app/google-services.json
+
+# Secretos y credenciales
+.env
+.env.*
+*.pem
+*.key
+service-account*.json
+firebase-service-account*.json
