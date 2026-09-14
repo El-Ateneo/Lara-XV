@@ -62,6 +62,7 @@ function GuestControl() {
           estado,
           ingreso,
           ingreso_fecha,
+          pase_url,
           created_at
         `)
         .order('nombre', {
@@ -92,30 +93,96 @@ function GuestControl() {
     loadGuests();
   }, [loadGuests]);
   useEffect(() => {
-  const channel = supabase
-    .channel('invitados-realtime')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'invitados',
-      },
-      payload => {
-        console.log(
-          'Cambio en invitados:',
-          payload
-        );
+    const channel = supabase
+      .channel('invitados-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'invitados',
+        },
+        payload => {
+          console.log(
+            'Cambio en invitados:',
+            payload
+          );
 
-        loadGuests();
-      }
-    )
-    .subscribe();
+          loadGuests();
+        }
+      )
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadGuests]);
+
+  const abrirWhatsApp = guest => {
+    const rawPhone =
+      String(
+        guest.whatsapp || ''
+      ).replace(/\D/g, '');
+
+    if (!rawPhone) {
+      window.alert(
+        'Este invitado no tiene un número de WhatsApp registrado.'
+      );
+      return;
+    }
+
+    let phone = rawPhone;
+
+    /*
+     * Los números del formulario normalmente
+     * llegan como 3875776632.
+     *
+     * Para WhatsApp Argentina:
+     * 54 + 9 + código de área + número.
+     */
+    if (!phone.startsWith('54')) {
+      phone = `549${phone}`;
+    }
+
+    const firstName =
+      String(
+        guest.nombre || ''
+      )
+        .trim()
+        .split(/\s+/)[0] ||
+      'invitado';
+
+    const paseUrl =
+      guest.pase_url ||
+      `https://recuerdos-lara-mis-xv.vercel.app/pase/${encodeURIComponent(
+        guest.id_invitado
+      )}`;
+
+    const mensaje =
+`Hola ${firstName} 👋
+
+Gracias por confirmar tu asistencia a los XV de Lara. 💛
+
+Te compartimos tu pase personal para este día tan especial:
+
+${paseUrl}
+
+Desde el enlace podés ver y descargar tu código QR. Guardalo para presentarlo al momento de ingresar.
+
+¡Te esperamos! ✨
+Lara · Mis XV`;
+
+    const url =
+      `https://wa.me/${phone}?text=${encodeURIComponent(
+        mensaje
+      )}`;
+
+    window.open(
+      url,
+      '_blank',
+      'noopener,noreferrer'
+    );
   };
-}, [loadGuests]);
 
   const counts = useMemo(() => {
     const confirmed = guests.filter(
@@ -1004,6 +1071,18 @@ function GuestControl() {
                               </strong>
                             </p>
                           )}
+
+                        {guest.whatsapp && (
+                          <button
+                            type="button"
+                            className="guest-whatsapp-button"
+                            onClick={() =>
+                              abrirWhatsApp(guest)
+                            }
+                          >
+                            Enviar pase por WhatsApp
+                          </button>
+                        )}
                       </div>
                     </div>
                   </article>
