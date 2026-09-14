@@ -91,6 +91,31 @@ function GuestControl() {
   useEffect(() => {
     loadGuests();
   }, [loadGuests]);
+  useEffect(() => {
+  const channel = supabase
+    .channel('invitados-realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'invitados',
+      },
+      payload => {
+        console.log(
+          'Cambio en invitados:',
+          payload
+        );
+
+        loadGuests();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [loadGuests]);
 
   const counts = useMemo(() => {
     const confirmed = guests.filter(
@@ -541,17 +566,7 @@ function GuestControl() {
           </p>
         </div>
 
-        <button
-          type="button"
-          className="guest-refresh"
-          onClick={loadGuests}
-          disabled={loading}
-        >
-          ↻{' '}
-          {loading
-            ? 'Actualizando...'
-            : 'Actualizar'}
-        </button>
+
       </header>
 
       <div className="guest-stats">
