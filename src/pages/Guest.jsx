@@ -1371,6 +1371,39 @@ const handleFileChange =
 
         }
 
+        /*
+        * NOTIFICACIÓN ADMIN
+        * No hacemos fallar el recuerdo
+        * si la notificación falla.
+        */
+        try {
+          const {
+            error:
+              notificationError,
+          } =
+            await supabase
+              .functions
+              .invoke(
+                'notificar-recuerdo'
+              );
+
+          if (
+            notificationError
+          ) {
+            console.error(
+              'Error notificando recuerdo:',
+              notificationError
+            );
+          }
+        } catch (
+          notificationError
+        ) {
+          console.error(
+            'Error notificando recuerdo:',
+            notificationError
+          );
+        }
+
 
         /* =====================================
            ÉXITO

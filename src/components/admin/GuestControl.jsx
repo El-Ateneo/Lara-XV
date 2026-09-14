@@ -567,6 +567,43 @@ Lara · Mis XV`;
         );
       }
 
+      /*
+      * NOTIFICAR INGRESO
+      */
+      try {
+        const {
+          error:
+            notificationError,
+        } =
+          await supabase
+            .functions
+            .invoke(
+              'notificar-ingreso',
+              {
+                body: {
+                  id_invitado:
+                    data.id_invitado,
+                },
+              }
+            );
+
+        if (
+          notificationError
+        ) {
+          console.error(
+            'Error notificando ingreso:',
+            notificationError
+          );
+        }
+      } catch (
+        notificationError
+      ) {
+        console.error(
+          'Error notificando ingreso:',
+          notificationError
+        );
+      }
+
       setScanResult({
         type: 'success',
         title:

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "416043582357",
+    "project_id": "lara-xv-admin",
+    "storage_bucket": "lara-xv-admin.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:416043582357:android:a1201019eaf7fa79c7ac9c",
+        "android_client_info": {
+          "package_name": "com.altex.laraxvadmin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-hR3UGe3eQzmE1IErSAvwR082kk4t21M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
