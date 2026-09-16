@@ -37,3 +37,5 @@ android/app/google-services.json
 *.key
 service-account*.json
 firebase-service-account*.json
+# Android build / release outputs
+android/app/release/
