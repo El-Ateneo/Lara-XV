@@ -719,9 +719,12 @@
    ========================================= */
 
 .pass-qr {
+  
   background: #ffffff;
+   padding: 30px 20px;
 
   border: 1px solid rgba(91, 72, 43, 0.2);
+   border-radius: 20px;
 
   box-shadow:
     0 10px 30px rgba(40, 34, 27, 0.12);
@@ -752,5 +755,149 @@
 
   .pass-note {
     font-size: 13px;
+  }
+}
+
+/* =========================================
+   INFORMACIÓN DEL EVENTO
+   ========================================= */
+
+.pass-event-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+
+  margin: 24px auto 0;
+  padding: 17px 18px;
+
+  width: min(100%, 320px);
+
+  border-top:
+    1px solid
+    rgba(185, 151, 88, 0.22);
+
+  border-bottom:
+    1px solid
+    rgba(185, 151, 88, 0.22);
+}
+
+.pass-event-info span {
+  color: #8a7041;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.pass-event-info strong {
+  color: #18211d;
+  font-size: 14px;
+}
+
+.pass-event-info small {
+  max-width: 280px;
+  color: #625d55;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+
+/* =========================================
+   CALENDARIO
+   ========================================= */
+
+.pass-calendar-button,
+.pass-location-button {
+  width: min(100%, 260px);
+  min-height: 48px;
+
+  margin:
+    14px auto 0;
+
+  padding:
+    12px 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  border-radius: 999px;
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+
+/* CALENDARIO */
+
+.pass-calendar-button {
+  border:
+    1px solid #b99758;
+
+  background:
+    rgba(185, 151, 88, 0.1);
+
+  color: #695733;
+}
+
+.pass-calendar-button:hover {
+  background:
+    rgba(185, 151, 88, 0.17);
+
+  transform:
+    translateY(-1px);
+}
+
+
+/* UBICACIÓN */
+
+.pass-location-button {
+  margin-top: 9px;
+
+  border:
+    1px solid
+    rgba(24, 36, 31, 0.28);
+
+  background: #18241f;
+
+  color: #fffaf1;
+}
+
+.pass-location-button:hover {
+  background: #25352d;
+
+  transform:
+    translateY(-1px);
+}
+
+
+/* =========================================
+   MÓVIL
+   ========================================= */
+
+@media (max-width: 560px) {
+  .pass-qr {
+    margin-top: 25px;
+  }
+
+  .pass-event-info {
+    width: 100%;
+  }
+
+  .pass-calendar-button,
+  .pass-location-button {
+    width: min(100%, 240px);
+    min-height: 48px;
   }
 }

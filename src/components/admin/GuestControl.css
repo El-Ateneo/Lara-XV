@@ -1133,3 +1133,270 @@
     width: 100%;
   }
 }
+/* =========================================
+   WHATSAPP — FILTROS Y ESTADOS
+   ========================================= */
+
+.guest-whatsapp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: -8px 0 20px;
+}
+
+.guest-whatsapp-filters button {
+  min-height: 38px;
+  padding: 8px 13px;
+
+  border: 1px solid #2b3241;
+  border-radius: 10px;
+
+  background: #10141e;
+  color: #8f96a8;
+
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.guest-whatsapp-filters button:hover {
+  border-color: #3d4658;
+  color: #d5d8df;
+  transform: translateY(-1px);
+}
+
+.guest-whatsapp-filters button.active {
+  border-color:
+    rgba(190, 158, 96, 0.55);
+
+  background:
+    rgba(190, 158, 96, 0.11);
+
+  color: #dfc889;
+}
+
+
+/* =========================================
+   ACCIONES DE CADA INVITADO
+   ========================================= */
+
+.guest-contact-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+
+/* =========================================
+   ESTADO DE WHATSAPP
+   ========================================= */
+
+.guest-whatsapp-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  min-height: 36px;
+  padding: 8px 11px;
+
+  border-radius: 9px;
+
+  font-size: 11px;
+}
+
+.guest-whatsapp-state strong {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.guest-whatsapp-state small {
+  color: inherit;
+  opacity: 0.72;
+  font-size: 10px;
+}
+
+
+/* Pendiente */
+
+.guest-whatsapp-state.pending {
+  border:
+    1px solid
+    rgba(209, 167, 80, 0.2);
+
+  background:
+    rgba(209, 167, 80, 0.06);
+
+  color: #ddb65d;
+}
+
+
+/* Enviado */
+
+.guest-whatsapp-state.sent {
+  border:
+    1px solid
+    rgba(73, 183, 120, 0.23);
+
+  background:
+    rgba(73, 183, 120, 0.07);
+
+  color: #75d49e;
+}
+
+
+/* =========================================
+   CONFIRMAR ENVÍO WHATSAPP
+   ========================================= */
+
+.guest-whatsapp-confirm {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 15px;
+
+  border:
+    1px solid
+    rgba(73, 183, 120, 0.42);
+
+  border-radius: 11px;
+
+  background:
+    rgba(73, 183, 120, 0.1);
+
+  color: #79dca3;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.guest-whatsapp-confirm:hover {
+  border-color:
+    rgba(73, 183, 120, 0.65);
+
+  background:
+    rgba(73, 183, 120, 0.16);
+
+  transform: translateY(-1px);
+}
+
+.guest-whatsapp-confirm:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+
+/* =========================================
+   INGRESO MANUAL
+   ========================================= */
+
+.guest-manual-entry-button {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 13px;
+  padding: 11px 16px;
+
+  border:
+    1px solid
+    rgba(190, 158, 96, 0.42);
+
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(190, 158, 96, 0.14),
+      rgba(122, 96, 48, 0.07)
+    );
+
+  color: #dfca98;
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.guest-manual-entry-button:hover {
+  border-color:
+    rgba(211, 181, 119, 0.7);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(190, 158, 96, 0.2),
+      rgba(122, 96, 48, 0.1)
+    );
+
+  transform: translateY(-1px);
+}
+
+.guest-manual-entry-button:active {
+  transform: translateY(0);
+}
+
+.guest-manual-entry-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+
+/* =========================================
+   MÓVIL / APP ANDROID
+   ========================================= */
+
+@media (max-width: 560px) {
+  .guest-whatsapp-filters {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap: 8px;
+  }
+
+  .guest-whatsapp-filters button {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 7px;
+    font-size: 10px;
+  }
+
+  .guest-whatsapp-filters button:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .guest-whatsapp-state {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .guest-manual-entry-button,
+  .guest-whatsapp-button,
+  .guest-whatsapp-confirm {
+    min-height: 48px;
+  }
+}

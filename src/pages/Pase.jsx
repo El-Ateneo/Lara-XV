@@ -457,6 +457,72 @@ export default function Pase() {
       }
     };
 
+    const agregarAlCalendario = () => {
+      const titulo = 'Lara · Mis XV';
+
+      const ubicacion =
+        'Salón de Eventos "CASA ESPERANZA", ' +
+        'La Merced Chica, Ruta Nacional N.º 51, km 8,400';
+
+      const mapsUrl =
+        'https://maps.app.goo.gl/UFetLkpQvPcMXPg66';
+
+      const descripcion =
+        `XV de Lara\n\n` +
+        `Salón de Eventos "CASA ESPERANZA"\n` +
+        `La Merced Chica · Ruta Nacional N.º 51 · km 8,400\n\n` +
+        `Ubicación:\n${mapsUrl}`;
+
+      /*
+      * Horario local de Salta:
+      * 11/10/2026
+      * 12:00 a 19:30
+      */
+      const ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Lara XV//ES',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'BEGIN:VEVENT',
+        `UID:lara-xv-20261011@recuerdos-lara-mis-xv.vercel.app`,
+        'DTSTAMP:20260916T000000Z',
+        'DTSTART;TZID=America/Argentina/Salta:20261011T120000',
+        'DTEND;TZID=America/Argentina/Salta:20261011T193000',
+        `SUMMARY:${titulo}`,
+        `LOCATION:${ubicacion}`,
+        `DESCRIPTION:${descripcion
+          .replace(/\n/g, '\\n')}`,
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n');
+
+      const blob = new Blob(
+        [ics],
+        {
+          type: 'text/calendar;charset=utf-8',
+        }
+      );
+
+      const url =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement('a');
+
+      link.href = url;
+      link.download = 'Lara-Mis-XV.ics';
+
+      document.body.appendChild(link);
+
+      link.click();
+      link.remove();
+
+      window.setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+    };
+
   if (loading) {
     return (
       <main className="pass-page">
@@ -564,6 +630,11 @@ export default function Pase() {
             {mesa ||
               'A confirmar'}
           </div>
+          <div className="pass-qr-separator">
+              <span />
+              <i>✦</i>
+              <span />
+            </div>
 
           <div
             className="pass-qr"
@@ -609,6 +680,37 @@ export default function Pase() {
           <p className="pass-download-note">
             Guardá este QR para presentarlo al ingresar.
           </p>
+
+          <div className="pass-event-info">
+            <span>11 DE OCTUBRE DE 2026</span>
+
+            <strong>
+              12:00 · CASA ESPERANZA
+            </strong>
+
+            <small>
+              La Merced Chica · Ruta Nacional N.º 51 · km 8,400
+            </small>
+          </div>
+
+          <button
+            type="button"
+            className="pass-calendar-button"
+            onClick={agregarAlCalendario}
+          >
+            <span>📅</span>
+            Agregar al calendario
+          </button>
+
+          <a
+            className="pass-location-button"
+            href="https://maps.app.goo.gl/UFetLkpQvPcMXPg66"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span>⌖</span>
+            Ver ubicación
+          </a>
 
           <p className="pass-note">
             Este pase es personal.

@@ -23,6 +23,22 @@ function GuestControl() {
   const [guestFilter, setGuestFilter] =
     useState('all');
 
+  
+  const [
+    whatsappFilter,
+    setWhatsappFilter,
+  ] = useState('all');
+
+  const [
+    processingGuestId,
+    setProcessingGuestId,
+  ] = useState(null);
+
+  const [
+    whatsappPendingGuest,
+    setWhatsappPendingGuest,
+  ] = useState(null);
+
   const [scannerOpen, setScannerOpen] =
     useState(false);
 
@@ -56,6 +72,8 @@ function GuestControl() {
           nombre,
           asistencia,
           whatsapp,
+          whatsapp_enviado,
+          whatsapp_enviado_fecha,
           email,
           relacion,
           mesa,
@@ -118,11 +136,11 @@ function GuestControl() {
     };
   }, [loadGuests]);
 
+
   const abrirWhatsApp = guest => {
-    const rawPhone =
-      String(
-        guest.whatsapp || ''
-      ).replace(/\D/g, '');
+    const rawPhone = String(
+      guest.whatsapp || ''
+    ).replace(/\D/g, '');
 
     if (!rawPhone) {
       window.alert(
@@ -133,21 +151,12 @@ function GuestControl() {
 
     let phone = rawPhone;
 
-    /*
-     * Los números del formulario normalmente
-     * llegan como 3875776632.
-     *
-     * Para WhatsApp Argentina:
-     * 54 + 9 + código de área + número.
-     */
     if (!phone.startsWith('54')) {
       phone = `549${phone}`;
     }
 
     const firstName =
-      String(
-        guest.nombre || ''
-      )
+      String(guest.nombre || '')
         .trim()
         .split(/\s+/)[0] ||
       'invitado';
@@ -168,6 +177,9 @@ Te compartimos tu pase personal para este día tan especial:
 ${paseUrl}
 
 Desde el enlace podés ver y descargar tu código QR. Guardalo para presentarlo al momento de ingresar.
+📩 También te enviamos un correo electrónico con estos mismos datos y el acceso a tu pase. 
+Si no lo encontrás en tu bandeja de entrada, revisá la carpeta de Spam o Correo no deseado.
+
 
 ¡Te esperamos! ✨
 Lara · Mis XV`;
@@ -182,7 +194,56 @@ Lara · Mis XV`;
       '_blank',
       'noopener,noreferrer'
     );
+
+    setWhatsappPendingGuest(guest);
   };
+  async function marcarWhatsAppEnviado(
+  guest
+) {
+  if (!guest?.id) return;
+
+  try {
+    setProcessingGuestId(
+      guest.id
+    );
+
+    const now =
+      new Date().toISOString();
+
+    const { error } =
+      await supabase
+        .from('invitados')
+        .update({
+          whatsapp_enviado: true,
+          whatsapp_enviado_fecha: now,
+        })
+        .eq('id', guest.id);
+
+    if (error) {
+      throw error;
+    }
+
+    setWhatsappPendingGuest(
+      null
+    );
+
+    await loadGuests();
+  } catch (err) {
+    console.error(
+      'Error actualizando WhatsApp:',
+      err
+    );
+
+    window.alert(
+      err?.message ||
+        'No se pudo marcar el WhatsApp como enviado.'
+    );
+  } finally {
+    setProcessingGuestId(
+      null
+    );
+  }
+}
 
   const counts = useMemo(() => {
     const confirmed = guests.filter(
@@ -196,12 +257,29 @@ Lara · Mis XV`;
     const pending = confirmed.filter(
       guest => guest.ingreso !== true
     );
+    const whatsappSent =
+      confirmed.filter(
+        guest =>
+          guest.whatsapp &&
+          guest.whatsapp_enviado ===
+            true
+      );
+
+    const whatsappPending =
+      confirmed.filter(
+        guest =>
+          guest.whatsapp &&
+          guest.whatsapp_enviado !==
+            true
+      );
 
     return {
       total: guests.length,
       confirmados: confirmed.length,
       ingresaron: entered.length,
       pendientes: pending.length,
+      whatsappEnviados: whatsappSent.length,
+      whatsappPendientes: whatsappPending.length,
     };
   }, [guests]);
 
@@ -241,6 +319,29 @@ Lara · Mis XV`;
           !entered;
       }
 
+      if (
+        whatsappFilter ===
+        'sent'
+      ) {
+        matchesFilter =
+          matchesFilter &&
+          guest.whatsapp &&
+          guest.whatsapp_enviado ===
+            true;
+      }
+
+      if (
+        whatsappFilter ===
+        'pending'
+      ) {
+        matchesFilter =
+          matchesFilter &&
+          confirmed &&
+          guest.whatsapp &&
+          guest.whatsapp_enviado !==
+            true;
+      }
+
       if (!matchesFilter) {
         return false;
       }
@@ -268,6 +369,7 @@ Lara · Mis XV`;
     guests,
     search,
     guestFilter,
+    whatsappFilter,
   ]);
 
   function formatDate(value) {
@@ -459,22 +561,56 @@ Lara · Mis XV`;
     [processingScan]
   );
 
-  async function registerEntry() {
+  async function registerEntry(
+    manualGuest = null
+  ) {
     const guest =
+      manualGuest ||
       scanResult?.guest;
 
     if (!guest?.id) {
       return;
     }
 
-    try {
-      setProcessingScan(true);
+    if (
+      guest.ingreso === true
+    ) {
+      window.alert(
+        `El ingreso de ${guest.nombre} ya está registrado${
+          guest.ingreso_fecha
+            ? ` desde ${formatDate(
+                guest.ingreso_fecha
+              )}`
+            : ''
+        }.`
+      );
 
-      /*
-       * Se guarda en UTC.
-       * Después se muestra en horario
-       * de Argentina con Intl.
-       */
+      return;
+    }
+
+    if (manualGuest) {
+      const confirmed =
+        window.confirm(
+          `¿Registrar el ingreso de ${guest.nombre}?\n\nCódigo: ${guest.id_invitado}\nMesa: ${
+            guest.mesa ||
+            'Sin asignar'
+          }`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    try {
+      if (manualGuest) {
+        setProcessingGuestId(
+          guest.id
+        );
+      } else {
+        setProcessingScan(true);
+      }
+
       const now =
         new Date().toISOString();
 
@@ -501,6 +637,8 @@ Lara · Mis XV`;
           nombre,
           asistencia,
           whatsapp,
+          whatsapp_enviado,
+          whatsapp_enviado_fecha,
           email,
           relacion,
           mesa,
@@ -514,11 +652,6 @@ Lara · Mis XV`;
         throw error;
       }
 
-      /*
-       * Si no devuelve ninguna fila,
-       * posiblemente otro dispositivo
-       * ya registró el ingreso.
-       */
       if (!data) {
         const {
           data: currentGuest,
@@ -547,15 +680,21 @@ Lara · Mis XV`;
         if (
           currentGuest?.ingreso
         ) {
-          setScanResult({
-            type: 'already',
-            title:
-              'Ingreso ya registrado',
-            message:
-              'Este invitado ya había ingresado.',
-            guest:
-              currentGuest,
-          });
+          if (!manualGuest) {
+            setScanResult({
+              type: 'already',
+              title:
+                'Ingreso ya registrado',
+              message:
+                'Este invitado ya había ingresado.',
+              guest:
+                currentGuest,
+            });
+          } else {
+            window.alert(
+              `El ingreso de ${currentGuest.nombre} ya estaba registrado.`
+            );
+          }
 
           await loadGuests();
 
@@ -568,7 +707,8 @@ Lara · Mis XV`;
       }
 
       /*
-      * NOTIFICAR INGRESO
+      * Tanto QR como ingreso manual
+      * utilizan la misma notificación.
       */
       try {
         const {
@@ -604,14 +744,24 @@ Lara · Mis XV`;
         );
       }
 
-      setScanResult({
-        type: 'success',
-        title:
-          'Ingreso registrado',
-        message:
-          'El invitado puede ingresar.',
-        guest: data,
-      });
+      if (manualGuest) {
+        window.alert(
+          `✓ Ingreso registrado\n\n${data.nombre}${
+            data.mesa
+              ? `\nMesa ${data.mesa}`
+              : ''
+          }`
+        );
+      } else {
+        setScanResult({
+          type: 'success',
+          title:
+            'Ingreso registrado',
+          message:
+            'El invitado puede ingresar.',
+          guest: data,
+        });
+      }
 
       await loadGuests();
     } catch (err) {
@@ -620,17 +770,27 @@ Lara · Mis XV`;
         err
       );
 
-      setScanResult(prev => ({
-        ...prev,
-        type: 'error',
-        title:
-          'No se pudo registrar',
-        message:
+      if (manualGuest) {
+        window.alert(
           err?.message ||
-          'Ocurrió un error al registrar el ingreso.',
-      }));
+            'No se pudo registrar el ingreso.'
+        );
+      } else {
+        setScanResult(prev => ({
+          ...prev,
+          type: 'error',
+          title:
+            'No se pudo registrar',
+          message:
+            err?.message ||
+            'Ocurrió un error al registrar el ingreso.',
+        }));
+      }
     } finally {
       setProcessingScan(false);
+      setProcessingGuestId(
+        null
+      );
     }
   }
 
@@ -761,6 +921,57 @@ Lara · Mis XV`;
           <strong>
             {counts.pendientes}
           </strong>
+        </button>
+      </div>
+
+      <div className="guest-whatsapp-filters">
+        <button
+          type="button"
+          className={
+            whatsappFilter === 'all'
+              ? 'active'
+              : ''
+          }
+          onClick={() =>
+            setWhatsappFilter('all')
+          }
+        >
+          Todos los WhatsApp
+        </button>
+
+        <button
+          type="button"
+          className={
+            whatsappFilter ===
+            'pending'
+              ? 'active'
+              : ''
+          }
+          onClick={() =>
+            setWhatsappFilter(
+              'pending'
+            )
+          }
+        >
+          ⏳ Pendientes (
+          {counts.whatsappPendientes})
+        </button>
+
+        <button
+          type="button"
+          className={
+            whatsappFilter === 'sent'
+              ? 'active'
+              : ''
+          }
+          onClick={() =>
+            setWhatsappFilter(
+              'sent'
+            )
+          }
+        >
+          ✓ Enviados (
+          {counts.whatsappEnviados})
         </button>
       </div>
 
@@ -929,8 +1140,8 @@ Lara · Mis XV`;
                 processing={
                   processingScan
                 }
-                onRegister={
-                  registerEntry
+                onRegister={() =>
+                  registerEntry()
                 }
                 onScanAnother={
                   resetScanner
@@ -1108,17 +1319,86 @@ Lara · Mis XV`;
                               </strong>
                             </p>
                           )}
+                        
+                        {isConfirmedGuest(guest) &&
+                          !entered && (
+                            <button
+                              type="button"
+                              className="guest-manual-entry-button"
+                              disabled={
+                                processingGuestId ===
+                                guest.id
+                              }
+                              onClick={() =>
+                                registerEntry(guest)
+                              }
+                            >
+                              {processingGuestId ===
+                              guest.id
+                                ? 'Registrando...'
+                                : '✓ Registrar ingreso'}
+                            </button>
+                          )}
 
                         {guest.whatsapp && (
-                          <button
-                            type="button"
-                            className="guest-whatsapp-button"
-                            onClick={() =>
-                              abrirWhatsApp(guest)
-                            }
-                          >
-                            Enviar pase por WhatsApp
-                          </button>
+                          <div className="guest-contact-actions">
+                            <div
+                              className={
+                                guest.whatsapp_enviado
+                                  ? 'guest-whatsapp-state sent'
+                                  : 'guest-whatsapp-state pending'
+                              }
+                            >
+                              <strong>
+                                {guest.whatsapp_enviado
+                                  ? '✓ WhatsApp enviado'
+                                  : '⏳ WhatsApp pendiente'}
+                              </strong>
+
+                              {guest.whatsapp_enviado &&
+                                guest.whatsapp_enviado_fecha && (
+                                  <small>
+                                    {formatDate(
+                                      guest.whatsapp_enviado_fecha
+                                    )}
+                                  </small>
+                                )}
+                            </div>
+
+                            <button
+                              type="button"
+                              className="guest-whatsapp-button"
+                              onClick={() =>
+                                abrirWhatsApp(guest)
+                              }
+                            >
+                              {guest.whatsapp_enviado
+                                ? 'Reenviar pase por WhatsApp'
+                                : 'Enviar pase por WhatsApp'}
+                            </button>
+
+                            {whatsappPendingGuest?.id ===
+                              guest.id && (
+                              <button
+                                type="button"
+                                className="guest-whatsapp-confirm"
+                                disabled={
+                                  processingGuestId ===
+                                  guest.id
+                                }
+                                onClick={() =>
+                                  marcarWhatsAppEnviado(
+                                    guest
+                                  )
+                                }
+                              >
+                                {processingGuestId ===
+                                guest.id
+                                  ? 'Guardando...'
+                                  : '✓ Marcar como enviado'}
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
