@@ -35,6 +35,32 @@ const PHOTO_DURATION = 10000;
 const VIDEO_DURATION = 16000;
 const TEXT_DURATION = 10000;
 
+/*
+ * Fecha y hora exactas en que el Display
+ * empieza a mostrar recuerdos y mensajes.
+ */
+/*
+ * Inicio de la proyección:
+ * 11 de octubre de 2026, 13:00,
+ * hora de Argentina (UTC-3).
+ *
+ * Al usar un instante con offset explícito,
+ * no dependemos de la zona horaria configurada
+ * en la TV o en la computadora.
+ */
+const DISPLAY_START_AT =
+  /*new Date('2026-10-11T13:00:00-03:00');*/
+  new Date('2026-09-22T17:00:00-03:00');
+
+
+/*
+ * Refuerzo de sincronización.
+ * Realtime sigue siendo el mecanismo principal,
+ * pero este intervalo evita que una TV quede
+ * mostrando contenido viejo si pierde un evento.
+ */
+const DISPLAY_REFRESH_MS = 30000;
+
 const MAX_FLOATING = 10;
 
 /*
@@ -82,17 +108,100 @@ function shuffleArray(items) {
   return result;
 }
 
+
+function cleanDisplayMessage(value) {
+  return String(value || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/&nbsp;/gi, ' ')
+    .trim();
+}
+
+function getCountdown(target, now = new Date()) {
+  const total = Math.max(
+    0,
+    target.getTime() - now.getTime()
+  );
+
+  const totalSeconds =
+    Math.floor(total / 1000);
+
+  const days = Math.floor(
+    totalSeconds / 86400
+  );
+
+  const hours = Math.floor(
+    (totalSeconds % 86400) / 3600
+  );
+
+  const minutes = Math.floor(
+    (totalSeconds % 3600) / 60
+  );
+
+  const seconds =
+    totalSeconds % 60;
+
+  const pad = (value) =>
+    String(value).padStart(2, '0');
+
+  return {
+    total,
+    days: pad(days),
+    hours: pad(hours),
+    minutes: pad(minutes),
+    seconds: pad(seconds),
+  };
+}
+
+function interleaveDisplayItems(posts, messages) {
+  if (messages.length === 0) {
+    return posts;
+  }
+
+  if (posts.length === 0) {
+    return messages;
+  }
+
+  const result = [];
+  let messageIndex = 0;
+
+  posts.forEach((post, index) => {
+    result.push(post);
+
+    /*
+     * Un mensaje de RSVP cada tres recuerdos.
+     * Si hay pocos recuerdos, igualmente
+     * insertamos mensajes al final.
+     */
+    if (
+      (index + 1) % 3 === 0 &&
+      messageIndex < messages.length
+    ) {
+      result.push(messages[messageIndex]);
+      messageIndex += 1;
+    }
+  });
+
+  while (messageIndex < messages.length) {
+    result.push(messages[messageIndex]);
+    messageIndex += 1;
+  }
+
+  return result;
+}
+
 /* =========================================================
    DISPLAY
    ========================================================= */
 
 function Display() {
   const [posts, setPosts] = useState([]);
+  const [formMessages, setFormMessages] = useState([]);
   const [mediaUrls, setMediaUrls] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [transitionKey, setTransitionKey] = useState(0);
   const [altexLogo, setAltexLogo] = useState(ALTEX_LOGO);
+  const [now, setNow] = useState(() => new Date());
 
   const previousIdsRef = useRef(new Set());
   const initializedRef = useRef(false);
@@ -176,14 +285,52 @@ function Display() {
     }
   }
 
+  async function loadFormMessages() {
+    try {
+      /*
+       * Esta RPC devuelve únicamente los mensajes
+       * que el administrador habilitó para Display.
+       * No exponemos la tabla invitados completa.
+       */
+      const { data, error } = await supabase
+        .rpc('get_mensajes_display');
+
+      if (error) {
+        throw error;
+      }
+
+      const nextMessages = (data || [])
+        .map((item) => ({
+          id: `rsvp-${item.id}`,
+          source: 'rsvp',
+          message: cleanDisplayMessage(
+            item.mensaje
+          ),
+          author_name:
+            item.nombre || 'Invitado',
+          file_type: null,
+          storage_path: null,
+        }))
+        .filter((item) => item.message);
+
+      setFormMessages(nextMessages);
+    } catch (error) {
+      console.error(
+        'Error cargando mensajes para Display:',
+        error
+      );
+    }
+  }
+
   /* =======================================================
      REALTIME
      ======================================================= */
 
   useEffect(() => {
     loadPosts();
+    loadFormMessages();
 
-    const channel = supabase
+    const postsChannel = supabase
       .channel('display-event-posts')
       .on(
         'postgres_changes',
@@ -199,51 +346,126 @@ function Display() {
       )
       .subscribe();
 
+    /*
+     * El Display público no necesita leer
+     * directamente la tabla invitados.
+     * La RPC segura se refresca periódicamente.
+     *
+     * Esto también funciona como respaldo de
+     * Realtime para event_posts: si la TV pierde
+     * un evento, a los pocos segundos se corrige.
+     */
+    const refreshTimer = setInterval(() => {
+      loadPosts();
+      loadFormMessages();
+    }, DISPLAY_REFRESH_MS);
+
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(refreshTimer);
+      supabase.removeChannel(postsChannel);
     };
   }, []);
+
+  /*
+   * Reloj local del Display.
+   * Al llegar la hora configurada cambia
+   * automáticamente a la presentación.
+   */
+  useEffect(() => {
+    const clock = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => clearInterval(clock);
+  }, []);
+
+  const displayStart =
+    DISPLAY_START_AT;
+
+  const countdown =
+    getCountdown(displayStart, now);
+
+  const presentationStarted =
+    countdown.total <= 0;
+
+  const displayItems = useMemo(
+    () =>
+      interleaveDisplayItems(
+        posts,
+        formMessages
+      ),
+    [posts, formMessages]
+  );
 
   /* =======================================================
      ROTACIÓN CENTRAL
      ======================================================= */
 
   useEffect(() => {
-    if (posts.length <= 1) {
+    if (!presentationStarted) {
+      return undefined;
+    }
+
+    if (displayItems.length <= 1) {
       setCurrentIndex(0);
       return undefined;
     }
 
-    const currentPost = posts[currentIndex];
+    const currentPost =
+      displayItems[currentIndex];
 
     if (!currentPost) {
+      setCurrentIndex(0);
       return undefined;
     }
 
-    const timer = setTimeout(() => {
-      setCurrentIndex(
-        (current) =>
-          (current + 1) % posts.length
-      );
+    const duration =
+      getDuration(currentPost);
+
+    const timer = window.setTimeout(() => {
+      setCurrentIndex((current) => {
+        const nextIndex =
+          (current + 1) %
+          displayItems.length;
+
+        return nextIndex;
+      });
 
       setTransitionKey(
         (value) => value + 1
       );
-    }, getDuration(currentPost));
+    }, duration);
 
-    return () => clearTimeout(timer);
-  }, [posts, currentIndex]);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [
+    currentIndex,
+    displayItems.length,
+    presentationStarted,
+  ]);
 
+  /*
+   * Si cambia la lista mientras se está mostrando
+   * contenido (por aprobación, eliminación o mensaje),
+   * mantenemos el índice dentro de un rango válido.
+   */
   useEffect(() => {
-    if (
-      posts.length > 0 &&
-      currentIndex >= posts.length
-    ) {
+    if (displayItems.length === 0) {
+      setCurrentIndex(0);
+      return;
+    }
+
+    if (currentIndex >= displayItems.length) {
       setCurrentIndex(0);
     }
-  }, [posts.length, currentIndex]);
+  }, [
+    displayItems.length,
+    currentIndex,
+  ]);
 
-  const currentPost = posts[currentIndex];
+  const currentPost =
+    displayItems[currentIndex];
 
   const approvedImages = useMemo(() => {
     return posts.filter(
@@ -285,10 +507,97 @@ function Display() {
   }
 
   /* =======================================================
+     CUENTA REGRESIVA
+     ======================================================= */
+
+  if (!presentationStarted) {
+    return (
+      <>
+        <DisplayStyles />
+
+        <main className="display">
+          <Background />
+          <FloralBorders />
+          <Butterflies />
+
+          <div className="countdown-screen">
+            <RoyalTitle />
+
+            <LargeOrnament />
+
+            <h2>
+              Todo está por comenzar
+            </h2>
+
+            <p className="countdown-intro">
+              Los recuerdos comienzan en
+            </p>
+
+            <div
+              className="countdown-clock"
+              aria-label="Cuenta regresiva"
+            >
+              <div>
+                <strong>
+                  {countdown.days}
+                </strong>
+                <span>DÍAS</span>
+              </div>
+
+              <b>:</b>
+
+              <div>
+                <strong>
+                  {countdown.hours}
+                </strong>
+                <span>HORAS</span>
+              </div>
+
+              <b>:</b>
+
+              <div>
+                <strong>
+                  {countdown.minutes}
+                </strong>
+                <span>MINUTOS</span>
+              </div>
+
+              <b>:</b>
+
+              <div>
+                <strong>
+                  {countdown.seconds}
+                </strong>
+                <span>SEGUNDOS</span>
+              </div>
+            </div>
+
+            <p className="countdown-hint">
+              Mientras esperás, escaneá el QR
+              y dejale un recuerdo a Lara ♡
+            </p>
+          </div>
+
+          <GuestQr />
+
+          <AltexCredit
+            logo={altexLogo}
+            onLogoError={() => {
+              if (altexLogo !== ALTEX_FALLBACK) {
+                setAltexLogo(ALTEX_FALLBACK);
+              }
+            }}
+          />
+        </main>
+      </>
+    );
+  }
+
+  /* =======================================================
      SIN RECUERDOS
      ======================================================= */
 
-  if (posts.length === 0) {
+  if (displayItems.length === 0) {
     return (
       <>
         <DisplayStyles />
@@ -303,11 +612,11 @@ function Display() {
             <LargeOrnament />
 
             <h2>
-              Una noche para recordar
+              Un día para recordar
             </h2>
 
             <p>
-              Tus recuerdos aparecerán acá.
+              La celebración ya comenzó. Escaneá el QR y compartí tu recuerdo.
             </p>
           </div>
 
@@ -1472,7 +1781,7 @@ function TextMemory({ post }) {
 
       <p>
         {post.message ||
-          'Un recuerdo para una noche inolvidable.'}
+          'Un recuerdo para un día inolvidable.'}
       </p>
 
       <div className="text-author">
@@ -3486,6 +3795,156 @@ function DisplayStyles() {
       }
 
       /* ===================================================
+         CUENTA REGRESIVA
+         =================================================== */
+
+      .countdown-screen {
+        position: relative;
+        z-index: 30;
+
+        width: 100%;
+        height: 100%;
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        text-align: center;
+      }
+
+      .countdown-screen h2 {
+        margin: 17px 0 4px;
+
+        color: #fff7e8;
+
+        font-size:
+          clamp(21px, 1.9vw, 34px);
+
+        font-weight: 400;
+        font-style: italic;
+      }
+
+      .countdown-intro {
+        margin: 8px 0 15px;
+
+        color:
+          rgba(255,255,255,.7);
+
+        font-size:
+          clamp(12px, 1vw, 17px);
+      }
+
+      .countdown-clock {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+
+        gap:
+          clamp(9px, 1.2vw, 20px);
+
+        margin: 2px 0 15px;
+
+        padding:
+          clamp(12px, 1.4vw, 20px)
+          clamp(18px, 2.5vw, 40px);
+
+        border:
+          1px solid
+          rgba(226,187,102,.35);
+
+        border-radius: 16px;
+
+        background:
+          rgba(25,9,16,.42);
+
+        box-shadow:
+          0 14px 45px
+          rgba(0,0,0,.25),
+          inset 0 0 24px
+          rgba(215,174,92,.05);
+
+        backdrop-filter: blur(5px);
+      }
+
+      .countdown-clock > div {
+        min-width:
+          clamp(56px, 6vw, 92px);
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .countdown-clock strong {
+        color:
+          var(--champagne-light);
+
+        font-size:
+          clamp(31px, 4.2vw, 67px);
+
+        line-height: .95;
+        font-weight: 500;
+
+        font-variant-numeric:
+          tabular-nums;
+
+        text-shadow:
+          0 4px 18px
+          rgba(0,0,0,.5),
+          0 0 15px
+          rgba(242,207,125,.12);
+      }
+
+      .countdown-clock span {
+        margin-top: 20px;
+
+        color:
+          rgba(233, 219, 159, 0.94);
+
+        font-family:
+          'Cormorant Garamond',
+           Georgia,
+          sans-serif;
+
+        font-size:
+          clamp(9px, .75vw, 13px);
+
+        font-weight: 500;
+        letter-spacing: .18em;
+      }
+
+      .countdown-clock b {
+        margin-top:
+          clamp(2px, .5vw, 8px);
+
+        color:
+          rgba(242,207,125,.72);
+
+        font-size:
+          clamp(26px, 3.5vw, 55px);
+
+        line-height: 1;
+        font-weight: 400;
+
+        animation:
+          countdownColon
+          1s ease-in-out infinite;
+      }
+
+      .countdown-hint {
+        margin: 0;
+
+        color:
+          rgba(255,255,255,.62);
+
+        font-size:
+          clamp(11px, .95vw, 16px);
+
+        font-style: italic;
+      }
+
+      /* ===================================================
          LOADING / VACÍO
          =================================================== */
 
@@ -3622,6 +4081,17 @@ function DisplayStyles() {
       /* ===================================================
          ANIMACIONES
          =================================================== */
+
+      @keyframes countdownColon {
+        0%,
+        100% {
+          opacity: .42;
+        }
+
+        50% {
+          opacity: 1;
+        }
+      }
 
       @keyframes floatingPhotoIn {
         0% {

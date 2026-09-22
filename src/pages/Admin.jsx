@@ -1214,6 +1214,20 @@ function Admin() {
             <button
               type="button"
               className={
+                adminSection === 'mensajes'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                setAdminSection('mensajes')
+              }
+            >
+              💛 Mensajes para Lara
+            </button>
+
+            <button
+              type="button"
+              className={
                 adminSection === 'ingreso'
                   ? 'active'
                   : ''
@@ -1772,8 +1786,10 @@ function Admin() {
           </section>
 
             </>
+          ) : adminSection === 'mensajes' ? (
+            <GuestControl mode="mensajes" />
           ) : (
-            <GuestControl />
+            <GuestControl mode="ingreso" />
           )}
 
           {/* ===================================

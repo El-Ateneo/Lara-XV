@@ -1400,3 +1400,20 @@
     min-height: 48px;
   }
 }
+.guest-whatsapp-button.resend {
+  background: linear-gradient(
+    135deg,
+    #d97706,
+    #f59e0b
+  );
+  border-color: #f59e0b;
+  color: #ffffff;
+}
+
+.guest-whatsapp-button.resend:hover {
+  background: linear-gradient(
+    135deg,
+    #864b1e,
+    #d97706
+  );
+}

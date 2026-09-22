@@ -14,7 +14,7 @@ import { supabase } from '../../lib/supabase';
 
 import './GuestControl.css';
 
-function GuestControl() {
+function GuestControl({ mode = 'ingreso' }) {
   const [guests, setGuests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -76,6 +76,8 @@ function GuestControl() {
           whatsapp_enviado_fecha,
           email,
           relacion,
+          mensaje,
+          mensaje_display,
           mesa,
           estado,
           ingreso,
@@ -371,6 +373,120 @@ Lara · Mis XV`;
     guestFilter,
     whatsappFilter,
   ]);
+
+  const messageGuests = useMemo(() => {
+    const value = search
+      .trim()
+      .toLowerCase();
+
+    return guests
+      .filter(guest => {
+        const message = String(
+          guest.mensaje || ''
+        ).trim();
+
+        if (!message) {
+          return false;
+        }
+
+        if (!value) {
+          return true;
+        }
+
+        return [
+          guest.nombre,
+          guest.id_invitado,
+          guest.mensaje,
+        ].some(field =>
+          String(field ?? '')
+            .toLowerCase()
+            .includes(value)
+        );
+      })
+      .sort((a, b) => {
+        if (
+          Boolean(a.mensaje_display) !==
+          Boolean(b.mensaje_display)
+        ) {
+          return a.mensaje_display ? -1 : 1;
+        }
+
+        return String(a.nombre || '')
+          .localeCompare(
+            String(b.nombre || ''),
+            'es'
+          );
+      });
+  }, [guests, search]);
+
+  const messageCounts = useMemo(() => {
+    const withMessage = guests.filter(
+      guest =>
+        String(guest.mensaje || '')
+          .trim()
+    );
+
+    return {
+      total: withMessage.length,
+      display: withMessage.filter(
+        guest =>
+          guest.mensaje_display === true
+      ).length,
+    };
+  }, [guests]);
+
+  function cleanGuestMessage(value) {
+    return String(value || '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/&nbsp;/gi, ' ')
+      .trim();
+  }
+
+  async function toggleMessageDisplay(guest) {
+    if (!guest?.id) return;
+
+    try {
+      setProcessingGuestId(guest.id);
+
+      const nextValue =
+        guest.mensaje_display !== true;
+
+      const { error } = await supabase
+        .from('invitados')
+        .update({
+          mensaje_display: nextValue,
+        })
+        .eq('id', guest.id);
+
+      if (error) {
+        throw error;
+      }
+
+      setGuests(current =>
+        current.map(item =>
+          item.id === guest.id
+            ? {
+                ...item,
+                mensaje_display:
+                  nextValue,
+              }
+            : item
+        )
+      );
+    } catch (err) {
+      console.error(
+        'Error actualizando mensaje:',
+        err
+      );
+
+      window.alert(
+        err?.message ||
+          'No se pudo actualizar el mensaje.'
+      );
+    } finally {
+      setProcessingGuestId(null);
+    }
+  }
 
   function formatDate(value) {
     if (!value) {
@@ -810,6 +926,206 @@ Lara · Mis XV`;
   function openScanner() {
     resetScanner();
     setScannerOpen(true);
+  }
+
+  if (mode === 'mensajes') {
+    return (
+      <section className="guest-control">
+        <header className="guest-control-header">
+          <div>
+            <span className="guest-control-kicker">
+              ADMINISTRACIÓN · LARA XV
+            </span>
+
+            <h1>
+              💛 Mensajes para Lara
+            </h1>
+
+            <p>
+              Revisá los mensajes de las confirmaciones
+              y elegí cuáles se mostrarán en Display.
+            </p>
+          </div>
+        </header>
+
+        <div className="guest-stats">
+          <div className="guest-stat active">
+            <span>Mensajes</span>
+            <strong>{messageCounts.total}</strong>
+          </div>
+
+          <div className="guest-stat guest-stat-success">
+            <span>En Display</span>
+            <strong>{messageCounts.display}</strong>
+          </div>
+
+          <div className="guest-stat guest-stat-pending">
+            <span>Ocultos</span>
+            <strong>
+              {messageCounts.total -
+                messageCounts.display}
+            </strong>
+          </div>
+        </div>
+
+        <div className="guest-tools">
+          <div className="guest-search">
+            <span>⌕</span>
+
+            <input
+              type="search"
+              value={search}
+              onChange={event =>
+                setSearch(event.target.value)
+              }
+              placeholder="Buscar por nombre o mensaje..."
+            />
+
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label="Limpiar búsqueda"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        </div>
+
+        {error && (
+          <div className="guest-error">
+            <strong>
+              No se pudieron cargar los mensajes.
+            </strong>
+            <span>{error}</span>
+          </div>
+        )}
+
+        {!error &&
+          loading &&
+          guests.length === 0 && (
+            <div className="guest-empty">
+              Cargando mensajes...
+            </div>
+          )}
+
+        {!error &&
+          !loading &&
+          messageGuests.length === 0 && (
+            <div className="guest-empty">
+              {search
+                ? 'No encontramos mensajes con esa búsqueda.'
+                : 'Todavía no hay mensajes para Lara.'}
+            </div>
+          )}
+
+        {messageGuests.length > 0 && (
+          <div
+            style={{
+              display: 'grid',
+              gap: '16px',
+              marginTop: '18px',
+            }}
+          >
+            {messageGuests.map(guest => {
+              const visible =
+                guest.mensaje_display === true;
+
+              const processing =
+                processingGuestId === guest.id;
+
+              return (
+                <article
+                  key={guest.id}
+                  className="guest-card"
+                  style={{
+                    border: visible
+                      ? '1px solid rgba(217,174,92,.75)'
+                      : undefined,
+                  }}
+                >
+                  <div className="guest-card-main">
+                    <div
+                      className={
+                        visible
+                          ? 'guest-avatar entered'
+                          : 'guest-avatar'
+                      }
+                    >
+                      {(guest.nombre || 'I')
+                        .charAt(0)
+                        .toUpperCase()}
+                    </div>
+
+                    <div className="guest-card-info">
+                      <div className="guest-name-row">
+                        <h3>{guest.nombre}</h3>
+
+                        <span
+                          className={
+                            visible
+                              ? 'guest-status entered'
+                              : 'guest-status pending'
+                          }
+                        >
+                          {visible
+                            ? '● EN DISPLAY'
+                            : '○ OCULTO'}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          whiteSpace: 'pre-wrap',
+                          lineHeight: 1.65,
+                          marginTop: '12px',
+                          fontSize: '1rem',
+                        }}
+                      >
+                        “{cleanGuestMessage(
+                          guest.mensaje
+                        )}”
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '10px',
+                          flexWrap: 'wrap',
+                          marginTop: '16px',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className={
+                            visible
+                              ? 'guest-whatsapp-button resend'
+                              : 'guest-open-scanner'
+                          }
+                          disabled={processing}
+                          onClick={() =>
+                            toggleMessageDisplay(
+                              guest
+                            )
+                          }
+                        >
+                          {processing
+                            ? 'Guardando...'
+                            : visible
+                              ? 'Ocultar del Display'
+                              : '✓ Mostrar en Display'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    );
   }
 
   return (
@@ -1367,7 +1683,11 @@ Lara · Mis XV`;
 
                             <button
                               type="button"
-                              className="guest-whatsapp-button"
+                              className={
+                                guest.whatsapp_enviado
+                                  ? 'guest-whatsapp-button resend'
+                                  : 'guest-whatsapp-button'
+                              }
                               onClick={() =>
                                 abrirWhatsApp(guest)
                               }
