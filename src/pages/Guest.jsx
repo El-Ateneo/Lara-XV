@@ -1558,7 +1558,7 @@ const handleFileChange =
             HERO
         ===================================== */}
 
-        <header className="hero">
+        <header className="guest-hero">
 
           <div className="hero-crown">
             ♕

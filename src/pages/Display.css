@@ -4,6 +4,7 @@
         box-sizing: border-box;
       }
 
+      /*esto esta bloqueando el scroll de las otras paginas
       html,
       body,
       #root {
@@ -13,7 +14,15 @@
         height: 100%;
         overflow: hidden;
         background: #090609;
+      }*/
+      .display,
+      .display *,
+      .display *::before,
+      .display *::after {
+        box-sizing: border-box;
       }
+
+
 
       .display {
         --gold: #d7ae5c;

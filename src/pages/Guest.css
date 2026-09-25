@@ -189,7 +189,7 @@ button {
    HERO
 ========================================= */
 
-.hero {
+.guest-hero {
   position: relative;
 
   padding:
@@ -324,7 +324,7 @@ button {
 }
 
 
-.hero h1 {
+.guest-hero h1 {
   margin:
     0;
 
@@ -351,7 +351,7 @@ button {
 }
 
 
-.hero p {
+.guest-hero p {
   margin:
     12px
     auto
