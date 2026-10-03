@@ -238,14 +238,63 @@ function Admin() {
             return;
           }
 
+          localStorage.setItem(
+            'lara_xv_admin_offline',
+            JSON.stringify({
+              userId: session.user.id,
+              email: session.user.email || '',
+              validatedAt: new Date().toISOString(),
+            })
+          );
+
           setUser(
             session.user
           );
         } catch (error) {
-          console.error(error);
+          console.warn(
+            'No se pudo validar online. Comprobando autorización local:',
+            error
+          );
+
+          try {
+            const {
+              data: { session },
+            } = await supabase.auth.getSession();
+
+            const savedAdmin =
+              localStorage.getItem(
+                'lara_xv_admin_offline'
+              );
+
+            const offlineAdmin =
+              savedAdmin
+                ? JSON.parse(savedAdmin)
+                : null;
+
+            const sameUser =
+              session?.user &&
+              offlineAdmin?.userId ===
+                session.user.id;
+
+            if (sameUser) {
+              setUser(session.user);
+              setError('');
+
+              console.log(
+                '✓ Acceso de administrador recuperado desde autorización local.'
+              );
+
+              return;
+            }
+          } catch (offlineError) {
+            console.error(
+              'Error comprobando autorización local:',
+              offlineError
+            );
+          }
 
           setError(
-            error.message ||
+            error?.message ||
               'No se pudo comprobar la sesión.'
           );
         } finally {
