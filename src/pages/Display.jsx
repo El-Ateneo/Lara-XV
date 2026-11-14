@@ -50,7 +50,7 @@ const TEXT_DURATION = 10000;
  * en la TV o en la computadora.
  */
 const DISPLAY_START_AT =
-  new Date('2026-10-11T13:00:00-03:00');
+  new Date('2027-10-11T13:00:00-03:00');
   /*new Date('2026-09-22T17:00:00-03:00');*/
 
 
